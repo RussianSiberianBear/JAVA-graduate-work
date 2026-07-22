@@ -44,9 +44,9 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(
                         authorization ->
                                 authorization
-                                        .requestMatchers(AUTH_WHITELIST)  // заменили mvcMatchers на requestMatchers
+                                        .requestMatchers(AUTH_WHITELIST)
                                         .permitAll()
-                                        .requestMatchers("/ads/**", "/users/**")  // и здесь
+                                        .requestMatchers("/ads/**", "/users/**")
                                         .authenticated())
                 .cors()
                 .and()
