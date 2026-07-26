@@ -11,6 +11,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import ru.skypro.homework.dto.Role;
 
+
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
@@ -39,18 +40,15 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf()
-                .disable()
-                .authorizeHttpRequests(
-                        authorization ->
-                                authorization
-                                        .requestMatchers(AUTH_WHITELIST)
-                                        .permitAll()
-                                        .requestMatchers("/ads/**", "/users/**")
-                                        .authenticated())
-                .cors()
-                .and()
+        http.csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authorization ->
+                        authorization
+                                .requestMatchers(AUTH_WHITELIST).permitAll()
+                                .requestMatchers("/ads/**", "/users/**").authenticated()
+                )
+                .cors(cors -> cors.disable())
                 .httpBasic(withDefaults());
+
         return http.build();
     }
 
