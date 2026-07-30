@@ -15,5 +15,7 @@ public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseD
     User toEntity(Register request);
 
     @Override
+    @Mapping(target = "username", ignore = true)
+    @Mapping(target = "password", ignore = true)
     UserInfoResponseDto toResponse(User user);
 }

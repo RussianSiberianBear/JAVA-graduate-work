@@ -8,14 +8,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
-import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.SetPasswordRequestDto;
+import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.service.UserService;
 
 @Slf4j
@@ -23,7 +23,6 @@ import ru.skypro.homework.service.UserService;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
-@PreAuthorize("hasAnyRole('ADMIN','USER')")
 public class UserController {
 
     private final UserService userService;
@@ -36,9 +35,12 @@ public class UserController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Пароль успешно обновлен"),
-             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<?> getUsersInfo(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
+        }
         String username = authentication.getName();
         return ResponseEntity.ok(userService.getUserInfo(username));
     }
@@ -58,6 +60,17 @@ public class UserController {
 
     public ResponseEntity<?> password_update(@RequestBody @Valid SetPasswordRequestDto request,
                                              Authentication authentication) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
+        }
+
+        // Проверка ролей
+        if (!authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
+                        auth.getAuthority().equals("ROLE_USER"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         String username = authentication.getName();
 
