@@ -62,7 +62,7 @@ public class UserController {
                                              Authentication authentication) {
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         // Проверка ролей
