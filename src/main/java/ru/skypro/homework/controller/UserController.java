@@ -39,7 +39,8 @@ public class UserController {
              @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<?> getUsersInfo(Authentication authentication) {
-
+        String username = authentication.getName();
+        return ResponseEntity.ok(userService.getUserInfo(username));
     }
 
     @PostMapping("/set_password")

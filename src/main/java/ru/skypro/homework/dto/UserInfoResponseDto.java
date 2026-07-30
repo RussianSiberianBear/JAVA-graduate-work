@@ -1,9 +1,8 @@
 package ru.skypro.homework.dto;
 
-public record UserResponseDto(
+public record UserInfoResponseDto(
         Long id,
         String email,
-        String username,
         String firstName,
         String lastName,
         String phone,
