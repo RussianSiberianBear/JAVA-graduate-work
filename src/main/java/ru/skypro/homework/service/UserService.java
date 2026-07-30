@@ -1,5 +1,6 @@
 package ru.skypro.homework.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -14,7 +15,6 @@ import ru.skypro.homework.repository.UserRepository;
 
 import java.util.Optional;
 
-@PreAuthorize("hasAnyRole('ADMIN','USER')")
 @Service
 public class UserService {
 
@@ -34,6 +34,7 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
     }
 
+    @Transactional
     public SetPasswordResponseDto passwordUpdate(String username, String currentPassword, String newPassword) {
 
         User user = userRepository.findByUsernameIgnoreCase(username)
