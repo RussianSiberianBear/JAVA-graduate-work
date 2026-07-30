@@ -10,6 +10,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false, unique = true, length = 32)
+    private String email;
+    @Column(nullable = false, unique = true, length = 32)
     private String username;
     @Column(nullable = false)
     private String password;
@@ -22,4 +24,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Role role = Role.USER;
+    @Column(nullable = false, unique = true, length = 32)
+    private String image;
 }
