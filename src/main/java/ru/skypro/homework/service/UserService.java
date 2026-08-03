@@ -21,7 +21,7 @@ import java.io.IOException;
  * Основной сервис по пользователю
  */
 @Service
-public class UserService implements UserDetailsService {
+public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -35,12 +35,6 @@ public class UserService implements UserDetailsService {
         this.fileService = fileService;
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
-        return user;
-    }
 
     /**
      * Метод выдает информацию по пользователю с именем(логином) username

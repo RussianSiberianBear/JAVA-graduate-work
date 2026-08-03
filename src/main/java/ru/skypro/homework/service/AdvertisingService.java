@@ -14,7 +14,6 @@ import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AdvertisingService {
@@ -32,7 +31,7 @@ public class AdvertisingService {
     }
 
     public Advertising findById(Long id) {
-        Advertising ads = advertisingRepository.findById(id)
+        return advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + id + " не найдено!"));
 
     }
@@ -64,6 +63,12 @@ public class AdvertisingService {
     }
 
     public AdvertisingWithAuthorDto getAdById(Long id) {
-        return null;
+        Advertising ad = advertisingRepository.findById(id)
+                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
+        return advertisingMapper.toResponseWithAuthor(ad);
+    }
+
+    public void deleteById(Long id) {
+        advertisingRepository.deleteById(id);
     }
 }

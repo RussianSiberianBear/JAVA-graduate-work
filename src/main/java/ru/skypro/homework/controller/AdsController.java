@@ -3,6 +3,7 @@ package ru.skypro.homework.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +78,7 @@ public class AdsController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        AdvertisingWithAuthorDto ads = advertisingService.getAdById(securityHelper.getCurrentUserId());
+        AdvertisingWithAuthorDto ads = advertisingService.getAdById(id);
         return ResponseEntity.ok(ads);
     }
 
@@ -102,5 +103,38 @@ public class AdsController {
 
         AdvertisingAllResponseDto ads = advertisingService.findAllByUserId(securityHelper.getCurrentUserId());
         return ResponseEntity.ok(ads);
+    }
+
+    /**
+     * Метод удаляет объявления по его id
+     * @return Статус 204 при успешном удалении
+     *                401 при неавторизованном пользователе
+     *                403 при недостатке прав
+     *                404 если объявление не найдено
+     */
+    @Operation(
+            summary = "Удалить объявление по его id",
+            description = "Удалить объявление по его id"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Успешное удаление"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
+            @ApiResponse(responseCode = "404", description = "Объявление не найдено")
+    })
+    @DeleteMapping("/ads/{id}")
+    @Transactional
+    public ResponseEntity<AdvertisingWithAuthorDto> deleteAdsById(@PathVariable @Valid Long id) {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!securityHelper.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        advertisingService.deleteById(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
