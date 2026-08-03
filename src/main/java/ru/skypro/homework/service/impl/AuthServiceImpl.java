@@ -20,6 +20,12 @@ public class AuthServiceImpl implements AuthService {
         this.encoder = passwordEncoder;
     }
 
+    /**
+     * Метод аутентификации пользователя
+     * @param userName - логин пользователя
+     * @param password - пароль пользователя
+     * @return boolean -  true  при спешной аутентификации и false при неуспешной
+     */
     @Override
     public boolean login(String userName, String password) {
         if (!manager.userExists(userName)) {
@@ -29,6 +35,11 @@ public class AuthServiceImpl implements AuthService {
         return encoder.matches(password, userDetails.getPassword());
     }
 
+    /**
+     * Метод регистрации нового пользователя
+     * @param register DTO с данными пользователя
+     * @return boolean true при успешной регистрации и false при ошибке регистрации
+     */
     @Override
     public boolean register(Register register) {
         if (manager.userExists(register.username())) {

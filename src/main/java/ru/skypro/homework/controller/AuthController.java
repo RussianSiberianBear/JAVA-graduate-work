@@ -22,6 +22,12 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Метод аутентификации пользователя
+     * @param login DTO пользователя (логин и пароль)
+     * @return 200 статус при успешной аутентификации
+     *         401 статус при неуспешной аутентификации
+     */
     @PostMapping("/login")
     @Operation(
             summary = "Аутентификация пользователя",
@@ -40,6 +46,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * Регистрация нового пользователя
+     * @param register DTO с данными пользователя
+     * @return Статус 201 при успешной регистрации
+     *                400 при неуспешной регистрации
+     */
     @PostMapping("/register")
     @Operation(
             summary = "Регистрация нового пользователя",

@@ -30,6 +30,11 @@ public class UserController {
 
     private final UserService userService;
 
+
+
+
+
+
     /**
      * Получение данных пользователя
      *
@@ -146,7 +151,6 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Аватар пользователе сохранен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-
     public ResponseEntity<?> updateUsersAvatar(@RequestParam("file") @Valid MultipartFile file, Authentication authentication) throws IOException {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
