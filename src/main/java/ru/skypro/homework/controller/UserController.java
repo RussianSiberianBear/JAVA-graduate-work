@@ -19,6 +19,8 @@ import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
 import ru.skypro.homework.service.UserService;
 
+import java.io.IOException;
+
 @Slf4j
 @CrossOrigin(value = "http://localhost:3000")
 @RestController
@@ -145,13 +147,14 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
 
-    public ResponseEntity<?> updateUsersAvatar(@RequestBody @Valid MultipartFile file, Authentication authentication) {
+    public ResponseEntity<?> updateUsersAvatar(@RequestParam("file") @Valid MultipartFile file, Authentication authentication) throws IOException {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         String username = authentication.getName();
-        return ResponseEntity.ok(userService.updateUsersAvatar(username, file));
+        userService.updateUsersAvatar(username, file);
+        return ResponseEntity.ok().build();
     }
 
 }

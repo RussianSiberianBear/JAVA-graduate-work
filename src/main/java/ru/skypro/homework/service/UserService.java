@@ -13,6 +13,8 @@ import ru.skypro.homework.mapper.UserMapper;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.UserRepository;
 
+import java.io.IOException;
+
 /**
  * Основной сервис по пользователю
  */
@@ -22,11 +24,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final FileService fileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper, FileService fileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
+        this.fileService = fileService;
     }
 
     /**
@@ -100,8 +104,10 @@ public class UserService {
     }
 
     @Transactional
-    public boolean updateUsersAvatar(String username, MultipartFile file) {
+    public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 
+        User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+        fileService.uploadAvatarFile(user,file);
     }
 
 }

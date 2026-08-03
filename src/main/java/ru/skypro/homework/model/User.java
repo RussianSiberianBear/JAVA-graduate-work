@@ -24,6 +24,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Role role = Role.USER;
-    @Column(nullable = false, unique = true, length = 32)
-    private String image;
+    @Column(nullable = false, unique = false, length = 32)
+    private String avatarFilename;
 }
