@@ -1,8 +1,6 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,8 +11,9 @@ import ru.skypro.homework.mapper.UserMapper;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.UserRepository;
 
-import java.util.Optional;
-
+/**
+ * Основной сервис по пользователю
+ */
 @Service
 public class UserService {
 
@@ -28,12 +27,24 @@ public class UserService {
         this.userMapper = userMapper;
     }
 
+    /**
+     * Метод выдает информацию по пользователю с именем(логином) username
+     * @param username - имя(логин) пользователя
+     * @return DTO с данными пользователя
+     */
     public UserInfoResponseDto getUserInfo(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
                 .map(userMapper::toResponse)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
     }
 
+    /**
+     * Метод обновляет пароль пользователя
+     * @param username -  имя(логин) пользователя, для которого нужно обновить пароль
+     * @param currentPassword - текущий пароль пользователя
+     * @param newPassword - новый пароль пользователя
+     * @return - DTO ответа по обрновлению паролля пользователя
+     */
     @Transactional
     public SetPasswordResponseDto passwordUpdate(String username, String currentPassword, String newPassword) {
 
