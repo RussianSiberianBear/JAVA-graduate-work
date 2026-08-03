@@ -9,11 +9,11 @@ import ru.skypro.homework.model.Advertising;
 @Mapper(componentModel = "spring")
 public interface AdvertisingMapper {
 
-    @Mapping(target = "author", source =  "userId")
+    @Mapping(target = "author", source = "userId")
     AdvertisingOneResponseDto toResponse(Advertising ads);
 
-    @Mapping(target="authorFirstName", source ="author.firstName")
-    @Mapping(target="authorLastName", source ="author.lastName")
+    @Mapping(target = "authorFirstName", source = "author.firstName")
+    @Mapping(target = "authorLastName", source = "author.lastName")
     AdvertisingWithAuthorDto toResponseWithAuthor(Advertising ads);
 
 }

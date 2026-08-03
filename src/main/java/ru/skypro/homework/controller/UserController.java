@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +35,7 @@ public class UserController {
      * Получение данных пользователя
      *
      * @return Статус 401 при неавторизованном пользователе или
-     *                200 статус и данные авторизованного пользователя
+     * 200 статус и данные авторизованного пользователя
      */
 
     @GetMapping("/me")
@@ -58,7 +57,7 @@ public class UserController {
     /**
      * Обновление паролья пользователя
      *
-     * @param request        DTO для обновления паролья
+     * @param request DTO для обновления паролья
      * @return 200 статус при успешном обновлении пароля,
      * 400 статус при некорректных данных пароля
      * 401 статус если пользователь не авторизован
@@ -105,7 +104,7 @@ public class UserController {
     /**
      * Обновление информации авторизованного пользователя
      *
-     * @param request        - DTO обновляеммых данных пользователя
+     * @param request - DTO обновляеммых данных пользователя
      * @return Статус 401 при неавторизованном пользователе или
      * 200 статус и обновленные данные авторизованного пользователя
      */
@@ -129,9 +128,10 @@ public class UserController {
 
     /**
      * Метод сохраняет или обновляет аватар пользователя
+     *
      * @param file - аватар пользователя
      * @return Статус 200 при успешном обновлении или
-     *         статус 401 если пользователь не авторизован
+     * статус 401 если пользователь не авторизован
      */
     @PatchMapping("/me/image")
     @Operation(

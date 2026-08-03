@@ -3,6 +3,7 @@ package ru.skypro.homework.dto;
 
 public enum Role {
     USER, ADMIN;
+
     public int getIndex() {
         return ordinal();
     }

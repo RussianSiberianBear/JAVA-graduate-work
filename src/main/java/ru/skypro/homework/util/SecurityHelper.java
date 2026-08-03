@@ -64,6 +64,7 @@ public class SecurityHelper {
 
     /**
      * Получить все роли авторизованного пользователя
+     *
      * @return Коллеция ролей
      */
     public Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities() {

@@ -7,7 +7,7 @@ import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.model.User;
 
 /**
- *  Маппер по пользователю
+ * Маппер по пользователю
  */
 @Mapper(componentModel = "spring")
 public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseDto> {

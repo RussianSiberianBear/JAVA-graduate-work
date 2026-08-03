@@ -13,4 +13,5 @@ public record AdvertisingAllResponseDto(
         @Schema(description = "Список объявлений")
         List<AdvertisingOneResponseDto> results
 
-) {}
+) {
+}

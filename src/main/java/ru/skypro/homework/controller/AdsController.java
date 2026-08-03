@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
@@ -24,11 +23,12 @@ import ru.skypro.homework.util.SecurityHelper;
 @RequestMapping("/ads")
 public class AdsController {
 
-    private  final AdvertisingService advertisingService;
-    private  final SecurityHelper securityHelper;
+    private final AdvertisingService advertisingService;
+    private final SecurityHelper securityHelper;
 
     /**
      * Мотод получает список всех объявлений и их количество
+     *
      * @return DTO с количеством и списком всех объявлений
      */
     @GetMapping("")
@@ -46,6 +46,7 @@ public class AdsController {
 
     /**
      * Метод добавляет одно объявление
+     *
      * @param file - рисунок объявления
      * @return DTO одного объявления
      */
@@ -69,6 +70,7 @@ public class AdsController {
 
     /**
      * Метод получает объявления по его id
+     *
      * @return DTO c данными объявления и его автора
      */
     @GetMapping("/ads/{id}")
@@ -84,6 +86,7 @@ public class AdsController {
 
     /**
      * Метод получает все объявления авторизованного пользователя
+     *
      * @return DTO с количеством объявлений и их список
      */
     @Operation(
@@ -107,10 +110,11 @@ public class AdsController {
 
     /**
      * Метод удаляет объявления по его id
+     *
      * @return Статус 204 при успешном удалении
-     *                401 при неавторизованном пользователе
-     *                403 при недостатке прав
-     *                404 если объявление не найдено
+     * 401 при неавторизованном пользователе
+     * 403 при недостатке прав
+     * 404 если объявление не найдено
      */
     @Operation(
             summary = "Удалить объявление по его id",

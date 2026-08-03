@@ -21,4 +21,5 @@ public record SetPasswordResponseDto(
                 pattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$")
         String newPassword
 
-) {}
+) {
+}

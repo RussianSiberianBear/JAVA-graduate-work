@@ -16,7 +16,7 @@ import ru.skypro.homework.repository.UserRepository;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
-public class WebSecurityConfig  implements UserDetailsService {
+public class WebSecurityConfig implements UserDetailsService {
 
     private final UserRepository userRepository;
 

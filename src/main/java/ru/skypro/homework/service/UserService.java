@@ -1,8 +1,6 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -110,7 +108,7 @@ public class UserService {
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 
         User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
-        fileService.uploadAvatarFile(user,file);
+        fileService.uploadAvatarFile(user, file);
     }
 
 }

@@ -1,6 +1,5 @@
 package ru.skypro.homework.repository;
 
-import io.micrometer.common.KeyValues;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.skypro.homework.model.Advertising;
 

@@ -22,4 +22,5 @@ public record AdvertisingOneResponseDto(
         @Schema(description = "Заголовок объявления", example = "iPhone 15 Pro Max")
         String title
 
-) {}
+) {
+}

@@ -22,6 +22,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Метод аутентификации пользователя
+     *
      * @param userName - логин пользователя
      * @param password - пароль пользователя
      * @return boolean -  true  при спешной аутентификации и false при неуспешной
@@ -37,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * Метод регистрации нового пользователя
+     *
      * @param register DTO с данными пользователя
      * @return boolean true при успешной регистрации и false при ошибке регистрации
      */

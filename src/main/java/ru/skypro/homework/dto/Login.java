@@ -26,4 +26,5 @@ public record Login(
         @Size(min = 6, max = 32, message = "Пароль должен содержать от 6 до 32 символов")
         String password
 
-) {}
+) {
+}

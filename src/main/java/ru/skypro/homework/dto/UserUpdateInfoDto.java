@@ -37,4 +37,5 @@ public record UserUpdateInfoDto(
                 message = "Телефон должен содержать от 10 до 20 цифр, может начинаться с +")
         String phone
 
-) {}
+) {
+}

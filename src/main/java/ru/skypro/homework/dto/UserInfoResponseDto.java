@@ -48,4 +48,5 @@ public record UserInfoResponseDto(
                 format = "uri")
         String avatarFileName
 
-) {}
+) {
+}
