@@ -8,7 +8,7 @@ import java.util.List;
 public record AdvertisingAllResponseDto(
 
         @Schema(description = "Общее количество объявлений", example = "25")
-        Long count,
+        Integer count,
 
         @Schema(description = "Список объявлений")
         List<AdvertisingOneResponseDto> results
