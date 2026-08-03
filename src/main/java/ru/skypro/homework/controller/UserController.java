@@ -28,23 +28,39 @@ public class UserController {
     private final UserService userService;
 
 
+    /**
+     * Получение данных пользователя
+     * @param authentication - интерфейс аутентификации
+     * @return Статус 401 при неавторизованном пользователе или 200 статус и данные авторизованного пользователя
+     */
+
     @GetMapping("/me")
     @Operation(
             summary = "Информация о пользователе",
             description = "Получение информации об авторизованном пользователе"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Пароль успешно обновлен"),
+            @ApiResponse(responseCode = "200", description = "Информация о пользователе получена"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<?> getUsersInfo(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         String username = authentication.getName();
         return ResponseEntity.ok(userService.getUserInfo(username));
     }
 
+    /**
+     * Обновление паролья пользователя
+     * @param request DTO для обновления паролья
+     * @param authentication Инфориация об аутентификации пользователя
+     * @return 200 статус при успешном обновлении пароля,
+     *         400 статус при некорректных данных пароля
+     *         401 статус если пользователь не авторизован
+     *         403 статус если у пользователя не хватает прав на обновление пароля
+     *         404 статус если пользователь не найден в базе данных
+     */
     @PostMapping("/set_password")
     @Operation(
             summary = "Изменение пароля",
@@ -55,7 +71,8 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Некорректный пароль",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "403", description = "Доступ запрещен")
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+            @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
 
     public ResponseEntity<?> password_update(@RequestBody @Valid SetPasswordRequestDto request,
