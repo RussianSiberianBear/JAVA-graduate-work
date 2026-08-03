@@ -31,15 +31,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean register(Register register) {
-        if (manager.userExists(register.getUsername())) {
+        if (manager.userExists(register.username())) {
             return false;
         }
         manager.createUser(
                 User.builder()
                         .passwordEncoder(this.encoder::encode)
-                        .password(register.getPassword())
-                        .username(register.getUsername())
-                        .roles(register.getRole().name())
+                        .password(register.password())
+                        .username(register.username())
+                        .roles(register.role().name())
                         .build());
         return true;
     }
