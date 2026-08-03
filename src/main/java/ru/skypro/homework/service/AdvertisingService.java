@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
+import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
+import ru.skypro.homework.exception.AdvertisingNotFoundException;
 import ru.skypro.homework.mapper.AdvertisingMapper;
 import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.User;
@@ -12,6 +14,7 @@ import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AdvertisingService {
@@ -19,8 +22,7 @@ public class AdvertisingService {
     private final AdvertisingRepository advertisingRepository;
     private final AdvertisingMapper advertisingMapper;
     private final UserRepository userRepository;
-
-    private final AdvertisingPrice  advertisingPrice;
+    private final AdvertisingPrice advertisingPrice;
 
     public AdvertisingService(AdvertisingRepository advertisingRepository, AdvertisingMapper advertisingMapper, UserRepository userRepository, AdvertisingPrice advertisingPrice) {
         this.advertisingRepository = advertisingRepository;
@@ -30,7 +32,9 @@ public class AdvertisingService {
     }
 
     public Advertising findById(Long id) {
-        return advertisingRepository.findById(id).orElse(null);
+        Advertising ads = advertisingRepository.findById(id)
+                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + id + " не найдено!"));
+
     }
 
     public AdvertisingAllResponseDto findAll() {
@@ -51,6 +55,15 @@ public class AdvertisingService {
         advertising.setPrice(advertisingPrice.getPrice());
         Advertising adsSaved = advertisingRepository.save(advertising);
 
-        return  advertisingMapper.toResponse(adsSaved);
+        return advertisingMapper.toResponse(adsSaved);
+    }
+
+    public AdvertisingAllResponseDto findAllByUserId(Long userId) {
+        List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAllByAuthorId(userId).stream().map(advertisingMapper::toResponse).toList();
+        return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
+    }
+
+    public AdvertisingWithAuthorDto getAdById(Long id) {
+        return null;
     }
 }

@@ -5,17 +5,22 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import ru.skypro.homework.dto.Role;
+import ru.skypro.homework.exception.UsernameNotFoundException;
+import ru.skypro.homework.repository.UserRepository;
 
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 public class WebSecurityConfig {
+
+    private final UserRepository userRepository;
 
     private static final String[] AUTH_WHITELIST = {
             "/swagger-resources/**",
@@ -26,6 +31,11 @@ public class WebSecurityConfig {
             "/register"
     };
 
+    public WebSecurityConfig(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    /*
     @Bean
     public InMemoryUserDetailsManager userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails user =
@@ -37,6 +47,24 @@ public class WebSecurityConfig {
                         .build();
         return new InMemoryUserDetailsManager(user);
     }
+*/
+
+    /*
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            User user = userRepository.findByUsernameIgnoreCase(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            return new User(
+                    user.getUsername(),
+                    user.getPassword(),
+                    user.getRole().name()
+            );
+        };
+    }
+
+    */
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

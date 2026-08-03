@@ -10,4 +10,6 @@ public interface AdvertisingMapper {
 
     @Mapping(target = "author", source =  "userId")
     AdvertisingOneResponseDto toResponse(Advertising ads);
+
+
 }

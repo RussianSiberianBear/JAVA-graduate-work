@@ -7,7 +7,6 @@ import ru.skypro.homework.dto.Role;
 @Data
 @Entity
 @Table(name = "user")
-
 public class User {
 
     @Id
@@ -28,6 +27,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Role role = Role.USER;
-    @Column(nullable = false, unique = false, length = 32)
+    @Column(length = 32)
     private String avatarFilename;
 }

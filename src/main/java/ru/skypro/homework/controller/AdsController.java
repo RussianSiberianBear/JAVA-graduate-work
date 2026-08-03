@@ -11,10 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import ru.skypro.homework.model.Advertising;
+import ru.skypro.homework.dto.AdvertisingAllResponseDto;
+import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
 import ru.skypro.homework.service.AdvertisingService;
-
-import java.util.List;
+import ru.skypro.homework.util.SecurityHelper;
 
 @Slf4j
 @CrossOrigin(value = "http://localhost:3000")
@@ -24,6 +24,7 @@ import java.util.List;
 public class AdsController {
 
     private  final AdvertisingService advertisingService;
+    private  final SecurityHelper securityHelper;
 
     /**
      * Мотод получает список всех объявлений и их количество
@@ -45,7 +46,6 @@ public class AdsController {
     /**
      * Метод добавляет одно объявление
      * @param file - рисунок объявления
-     * @param authentication - объект аутентификации пользователя
      * @return DTO одного объявления
      */
     @PostMapping("")
@@ -57,14 +57,50 @@ public class AdsController {
             @ApiResponse(responseCode = "201", description = "Объявление добавлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> addAds(@RequestParam("file") @Valid MultipartFile file, Authentication authentication) {
+    public ResponseEntity<?> addAds(@RequestParam("file") @Valid MultipartFile file) {
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String username = authentication.getName();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(advertisingService.createAds(username, file));
+                .body(advertisingService.createAds(securityHelper.getCurrentUsername(), file));
     }
 
+    /**
+     * Метод получает объявления по его id
+     * @return DTO c данными объявления и его автора
+     */
+    @GetMapping("/ads/{id}")
+    public ResponseEntity<AdvertisingWithAuthorDto> getAdsById(@PathVariable @Valid Long id) {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        AdvertisingWithAuthorDto ads = advertisingService.getAdById(securityHelper.getCurrentUserId());
+        return ResponseEntity.ok(ads);
+    }
+
+    /**
+     * Метод получает все объявления авторизованного пользователя
+     * @return DTO с количеством объявлений и их список
+     */
+    @Operation(
+            summary = "Получить все объявление авторизованного пользователя",
+            description = "Получить все объявление авторизованного пользователя и их количство"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Объяления и их количество получено"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    })
+    @GetMapping("/ads/me")
+    public ResponseEntity<AdvertisingAllResponseDto> getAdsAuthorisedUser() {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        AdvertisingAllResponseDto ads = advertisingService.findAllByUserId(securityHelper.getCurrentUserId());
+        return ResponseEntity.ok(ads);
+    }
 }
