@@ -19,7 +19,7 @@ public class Advertising {
 
     @ManyToOne
     @JoinColumn(name = "author_id", nullable = false)
-    @JsonIgnore  // Игнорируем при сериализации, но можно использовать для десериализации
+    @JsonIgnore
     private User author;
 
     @Column(nullable = false, unique = true, length = 32)

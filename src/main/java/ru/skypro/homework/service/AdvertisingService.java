@@ -1,5 +1,6 @@
 package ru.skypro.homework.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +42,7 @@ public class AdvertisingService {
         return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
     }
 
+    @Transactional
     public AdvertisingOneResponseDto createAds(String username, MultipartFile file) {
 
         User user = userRepository.findByUsernameIgnoreCase(username)
@@ -68,7 +70,25 @@ public class AdvertisingService {
         return advertisingMapper.toResponseWithAuthor(ad);
     }
 
+    @Transactional
     public void deleteById(Long id) {
         advertisingRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void updateAdsImage(Long id, MultipartFile file) {
+
+        Advertising ad = advertisingRepository.findById(id)
+                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
+
+        String oldImage = ad.getImage();
+        try {
+            ad.setImage(file.getOriginalFilename());
+            advertisingRepository.save(ad);
+            //TODO добавить сохранение файла и удаление старого!
+        } catch (Exception e) {
+            ad.setImage(oldImage);
+            advertisingRepository.save(ad);
+        }
     }
 }
