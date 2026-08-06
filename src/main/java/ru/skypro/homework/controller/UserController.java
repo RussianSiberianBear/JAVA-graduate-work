@@ -32,29 +32,6 @@ public class UserController {
     private final SecurityHelper securityHelper;
 
     /**
-     * Получение данных пользователя
-     *
-     * @return Статус 401 при неавторизованном пользователе или
-     * 200 статус и данные авторизованного пользователя
-     */
-
-    @GetMapping("/me")
-    @Operation(
-            summary = "Информация о пользователе",
-            description = "Получение информации об авторизованном пользователе"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Информация о пользователе получена"),
-            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
-    })
-    public ResponseEntity<?> getUsersInfo() {
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        return ResponseEntity.ok(userService.getUserInfo(securityHelper.getCurrentUsername()));
-    }
-
-    /**
      * Обновление паролья пользователя
      *
      * @param request DTO для обновления паролья
@@ -99,6 +76,29 @@ public class UserController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Получение данных об авторизованном пользователе
+     *
+     * @return Статус 401 при неавторизованном пользователе или
+     * 200 статус и данные авторизованного пользователя
+     */
+
+    @GetMapping("/me")
+    @Operation(
+            summary = "Информация о пользователе",
+            description = "Получение информации об авторизованном пользователе"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Информация о пользователе получена"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    })
+    public ResponseEntity<?> getUsersInfo() {
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userService.getUserInfo(securityHelper.getCurrentUsername()));
     }
 
     /**

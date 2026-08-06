@@ -2,9 +2,7 @@ package ru.skypro.homework.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
 import ru.skypro.homework.dto.CommentOneResponseDto;
-import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.Comment;
 
 @Mapper(componentModel = "spring")

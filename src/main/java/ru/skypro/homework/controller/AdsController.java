@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
+import ru.skypro.homework.dto.CommentOneResponseDto;
 import ru.skypro.homework.dto.CommentsAllResponseDto;
 import ru.skypro.homework.service.AdvertisingService;
 import ru.skypro.homework.service.CommentService;
@@ -183,6 +184,7 @@ public class AdsController {
 
     /**
      * Получение всех комментариев по заданному рекламному объявлению
+     *
      * @param id - идентификатор рекламного объявления
      * @return DTO всех объявлений и их количества
      */
@@ -205,4 +207,98 @@ public class AdsController {
         return ResponseEntity.ok(commentService.findByAdvertisingId(id));
     }
 
+    /**
+     * Добавление комментария к заданному рекламному объявлению
+     *
+     * @param id   - идентификатор объявления
+     * @param text - текст комментария
+     * @return DTO добавленного комментария
+     */
+
+    @Operation(
+            summary = "Добавить комментарий к заданному рекламному объявлению",
+            description = "Добавить комментарий к заданному рекламному объявлению по его id"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Комментарии и их количество получено"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "404", description = "Заданное объявление не найдено")
+    })
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestBody String text) {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return ResponseEntity.ok(commentService.addCommentToAdvertisingId(securityHelper.getCurrentUser(), id, text));
+    }
+
+
+    /**
+     * Метод удалает определенный комментарий к конкретному рекламному объявлению
+     *
+     * @param adId      - идентификатор рекламного объявления
+     * @param commentId - идентификатор комментария
+     * @return Статус 200 - при удачном удалении
+     * 401 - при попытке ваыполнить операцию неавторизованным пользователем
+     * 403 - при недосточном уровне прав пользователя(удаление комментариев разрешено только пользователю с рольюю ADMIN)
+     * 404 - если комментари  или само обяъвление не найдено
+     */
+    @Operation(
+            summary = "Удалить заданный комментарий к заданному рекламному объявлению",
+            description = "Удалить заданный комментарий к заданному рекламному объявлению"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Комментарий удален"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
+            @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
+    })
+    @PostMapping("/{adId}/comments/{commentId}")
+    public ResponseEntity<?> deleteComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId) {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!securityHelper.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        commentService.deleteCommentByIdAndAdvertisingById(adId, commentId);
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Метод обновляет определенный комментарий к конкретному рекламному объявлению
+     *
+     * @param adId      - идентификатор рекламного объявления
+     * @param commentId - идентификатор комментария
+     * @return Статус 200 и DTO обновленного комментария при удачном обновлении
+     * 401 - при попытке ваыполнить операцию неавторизованным пользователем
+     * 403 - при недосточном уровне прав пользователя(удаление комментариев разрешено только пользователю с рольюю ADMIN)
+     * 404 - если комментари  или само обяъвление не найдено
+     */
+    @Operation(
+            summary = "Обновить заданный комментарий к заданному рекламному объявлению",
+            description = "Обновить заданный комментарий к заданному рекламному объявлению"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Комментарий удален"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
+            @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
+    })
+    @PatchMapping("/{adId}/comments/{commentId}")
+    public ResponseEntity<?> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestBody String text) {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!securityHelper.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(commentService.updateCommentByIdAndAdvertisingById(adId, commentId, text));
+    }
 }

@@ -21,4 +21,5 @@ public record CommentOneResponseDto(
 
         @Schema(description = "Текст комментария", example = "Мой комментарий к объявлению")
         String text
-) {}
+) {
+}
