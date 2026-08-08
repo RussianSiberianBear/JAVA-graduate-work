@@ -50,7 +50,7 @@ public class AdsController {
     /**
      * Метод добавляет одно объявление
      *
-     * @param file - рисунок объявления
+     * @param image - рисунок объявления
      * @return DTO одного объявления
      */
     @PostMapping("")
