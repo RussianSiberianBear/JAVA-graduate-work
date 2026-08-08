@@ -8,9 +8,10 @@ import ru.skypro.homework.model.Comment;
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
     @Mapping(target = "advertising", ignore = true)
-    @Mapping(target = "author", source = "userId")
-    @Mapping(target = "authorFirstName", source = "userFirstName")
-    @Mapping(target = "authorImage", source = "userImage")
+    @Mapping(target = "author", source = "author.id")
+    @Mapping(target = "authorFirstName", source = "author.firstName")
+    @Mapping(target = "authorImage", source = "author.image")
+    @Mapping(target = "pk", source = "id")
     CommentOneResponseDto toResponse(Comment comment);
 
 }

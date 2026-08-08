@@ -11,10 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import ru.skypro.homework.dto.AdvertisingAllResponseDto;
-import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
-import ru.skypro.homework.dto.CommentOneResponseDto;
-import ru.skypro.homework.dto.CommentsAllResponseDto;
+import ru.skypro.homework.dto.*;
 import ru.skypro.homework.service.AdvertisingService;
 import ru.skypro.homework.service.CommentService;
 import ru.skypro.homework.util.SecurityHelper;
@@ -65,13 +62,13 @@ public class AdsController {
             @ApiResponse(responseCode = "201", description = "Объявление добавлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> addAds(@RequestParam("file") @Valid MultipartFile file) {
+    public ResponseEntity<?> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(advertisingService.createAds(securityHelper.getCurrentUsername(), file));
+                .body(advertisingService.createAds(securityHelper.getCurrentUsername(), properties, image));
     }
 
     /**
@@ -116,13 +113,47 @@ public class AdsController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (!securityHelper.isAdmin()) {
+        if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         advertisingService.deleteById(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    /**
+     * Метод обновляет объявления по его id
+     *
+     * @return Статус 204 при успешном удалении
+     * 401 при неавторизованном пользователе
+     * 403 при недостатке прав
+     * 404 если объявление не найдено
+     */
+    @Operation(
+            summary = "Обновить объявление по его id",
+            description = "Обновитьить объявление по его id"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Успешное обновление"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
+            @ApiResponse(responseCode = "404", description = "Объявление не найдено")
+    })
+    @PatchMapping("/{id}")
+    @Transactional
+    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestPart("properties") CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(advertisingService.updateById(id, properties));
+    }
+
 
     /**
      * Метод получает все объявления авторизованного пользователя
@@ -225,7 +256,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление не найдено")
     })
     @PostMapping("/{id}/comments")
-    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestBody String text) {
+    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestPart("text") CommentRequestDto text) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -233,7 +264,6 @@ public class AdsController {
 
         return ResponseEntity.ok(commentService.addCommentToAdvertisingId(securityHelper.getCurrentUser(), id, text));
     }
-
 
     /**
      * Метод удалает определенный комментарий к конкретному рекламному объявлению
@@ -255,7 +285,7 @@ public class AdsController {
             @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
             @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
     })
-    @PostMapping("/{adId}/comments/{commentId}")
+    @DeleteMapping("/{adId}/comments/{commentId}")
     public ResponseEntity<?> deleteComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId) {
 
         if (!securityHelper.isAuthenticated()) {
@@ -265,7 +295,7 @@ public class AdsController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        commentService.deleteCommentByIdAndAdvertisingById(adId, commentId);
+        commentService.deleteCommentByIdAndAdvertisingById(commentId, adId);
 
         return ResponseEntity.ok().build();
     }
@@ -291,7 +321,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
     })
     @PatchMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<?> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestBody String text) {
+    public ResponseEntity<?> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestPart("text") CommentRequestDto text) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "DTO одного объявления автора")
 public record AdvertisingWithAuthorDto(
         @Schema(description = "Идентификатор объявления", example = "1")
-        Long id,
+        Long pk,
         @Schema(description = "Имя автора", example = "Joe")
         String authorFirstName,
 

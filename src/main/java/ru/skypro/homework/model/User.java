@@ -6,7 +6,7 @@ import ru.skypro.homework.dto.Role;
 
 @Data
 @Entity
-@Table(name = "user")
+@Table(name = "\"user\"")
 public class User {
 
     @Id
@@ -28,5 +28,5 @@ public class User {
     @Column(nullable = false, length = 32)
     private Role role = Role.USER;
     @Column(length = 32)
-    private String avatarFilename;
+    private String image;
 }

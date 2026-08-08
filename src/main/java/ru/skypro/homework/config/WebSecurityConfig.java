@@ -5,10 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.UserRepository;
 
@@ -26,36 +26,36 @@ public class WebSecurityConfig implements UserDetailsService {
             "/v3/api-docs",
             "/webjars/**",
             "/login",
-            "/register"
+            "/register",
+            "/ads/**"
     };
 
     public WebSecurityConfig(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    /*
-    @Bean
-    public InMemoryUserDetailsManager userDetailsService(PasswordEncoder passwordEncoder) {
-        UserDetails user =
-                User.builder()
-                        .username("user@gmail.com")
-                        .password("password")
-                        .passwordEncoder(passwordEncoder::encode)
-                        .roles(Role.USER.name())
-                        .build();
-        return new InMemoryUserDetailsManager(user);
-    }
-*/
-
 
     @Bean
-    @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
         return (UserDetails) user;
     }
 
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            User user = userRepository.findByUsernameIgnoreCase(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+
+            return org.springframework.security.core.userdetails.User
+                    .builder()
+                    .username(user.getUsername())
+                    .password(user.getPassword())
+                    .roles("USER", "ADMIN")
+                    .build();
+        };
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -63,7 +63,7 @@ public class WebSecurityConfig implements UserDetailsService {
                 .authorizeHttpRequests(authorization ->
                         authorization
                                 .requestMatchers(AUTH_WHITELIST).permitAll()
-                                .requestMatchers("/ads/**", "/users/**").authenticated()
+                                .requestMatchers("/users/**").authenticated()
                 )
                 .cors(cors -> cors.disable())
                 .httpBasic(withDefaults());

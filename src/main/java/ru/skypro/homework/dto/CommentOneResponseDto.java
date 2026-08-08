@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "DTO одного комментария")
 public record CommentOneResponseDto(
         @Schema(description = "Идентификатор комментария", example = "1")
-        Long id,
+        Long pk,
 
         @Schema(description = "Идентификатор автора", example = "100")
         Long author,

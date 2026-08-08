@@ -31,4 +31,7 @@ public class Advertising {
     @Column(nullable = false, length = 255)
     private String title;
 
+    @Column(nullable = false, length = 255)
+    private String description;
+
 }

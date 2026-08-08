@@ -2,6 +2,7 @@ package ru.skypro.homework.service;
 
 import org.springframework.stereotype.Service;
 import ru.skypro.homework.dto.CommentOneResponseDto;
+import ru.skypro.homework.dto.CommentRequestDto;
 import ru.skypro.homework.dto.CommentsAllResponseDto;
 import ru.skypro.homework.exception.AdvertisingNotFoundException;
 import ru.skypro.homework.exception.CommentNotFoundException;
@@ -12,6 +13,7 @@ import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.CommentRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -38,15 +40,16 @@ public class CommentService {
         return new CommentsAllResponseDto(commentListDto.size(), commentListDto);
     }
 
-    public CommentOneResponseDto addCommentToAdvertisingId(User user, Long id, String text) {
+    public CommentOneResponseDto addCommentToAdvertisingId(User user, Long id, CommentRequestDto dto) {
 
         Advertising ad = advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + id + " не найдено!"));
 
         Comment comment = new Comment();
         comment.setAuthor(user);
-        comment.setText(text);
+        comment.setText(dto.text());
         comment.setAdvertising(ad);
+        comment.setCreatedAt(LocalDateTime.now());
 
         return commentMapper.toResponse(comment);
     }
@@ -61,7 +64,7 @@ public class CommentService {
         commentRepository.deleteById(id);
     }
 
-    public CommentOneResponseDto updateCommentByIdAndAdvertisingById(Long commentId, Long advertisingId, String text) {
+    public CommentOneResponseDto updateCommentByIdAndAdvertisingById(Long commentId, Long advertisingId, CommentRequestDto dto) {
 
         advertisingRepository.findById(advertisingId)
                 .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + advertisingId + " не найдено!"));
@@ -69,7 +72,7 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentNotFoundException("Комментарий с идентификатором id = " + commentId + " не найден!"));
 
-        comment.setText(text);
+        comment.setText(dto.text());
         commentRepository.save(comment);
         return commentMapper.toResponse(comment);
     }

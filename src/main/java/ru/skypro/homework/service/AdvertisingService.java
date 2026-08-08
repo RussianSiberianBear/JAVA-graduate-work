@@ -1,18 +1,20 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
+import ru.skypro.homework.dto.CreateOrUpdateAd;
 import ru.skypro.homework.exception.AdvertisingNotFoundException;
+import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.mapper.AdvertisingMapper;
 import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
+import ru.skypro.homework.util.SecurityHelper;
 
 import java.util.List;
 
@@ -23,12 +25,14 @@ public class AdvertisingService {
     private final AdvertisingMapper advertisingMapper;
     private final UserRepository userRepository;
     private final AdvertisingPrice advertisingPrice;
+    private final SecurityHelper securityHelper;
 
-    public AdvertisingService(AdvertisingRepository advertisingRepository, AdvertisingMapper advertisingMapper, UserRepository userRepository, AdvertisingPrice advertisingPrice) {
+    public AdvertisingService(AdvertisingRepository advertisingRepository, AdvertisingMapper advertisingMapper, UserRepository userRepository, AdvertisingPrice advertisingPrice, SecurityHelper securityHelper) {
         this.advertisingRepository = advertisingRepository;
         this.advertisingMapper = advertisingMapper;
         this.userRepository = userRepository;
         this.advertisingPrice = advertisingPrice;
+        this.securityHelper = securityHelper;
     }
 
     public Advertising findById(Long id) {
@@ -43,19 +47,29 @@ public class AdvertisingService {
     }
 
     @Transactional
-    public AdvertisingOneResponseDto createAds(String username, MultipartFile file) {
+    public AdvertisingOneResponseDto createAds(String username, CreateOrUpdateAd properties, MultipartFile file) {
 
         User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
 
-        Advertising advertising = new Advertising();
+        Advertising advertising = advertisingMapper.toEntity(properties);
         advertising.setAuthor(user);
         advertising.setImage(file.getOriginalFilename());
         //TODO добавить сохранение файла!
-        advertising.setTitle(file.getContentType());
-        advertising.setPrice(advertisingPrice.getPrice());
         Advertising adsSaved = advertisingRepository.save(advertising);
 
+        return advertisingMapper.toResponse(adsSaved);
+    }
+
+    @Transactional
+    public AdvertisingOneResponseDto updateById(Long id, CreateOrUpdateAd properties) {
+        Advertising ad = advertisingRepository.findById(id)
+                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
+
+        // Обновляем существующий объект
+        advertisingMapper.updateEntity(properties, ad);
+
+        Advertising adsSaved = advertisingRepository.save(ad);
         return advertisingMapper.toResponse(adsSaved);
     }
 
@@ -90,5 +104,11 @@ public class AdvertisingService {
             ad.setImage(oldImage);
             advertisingRepository.save(ad);
         }
+    }
+
+    public boolean isAnotherAuthor(Long adsId) {
+        Advertising ad = advertisingRepository.findById(adsId)
+                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + adsId + " не найдено!"));
+        return !ad.getAuthor().getId().equals(securityHelper.getCurrentUserId());
     }
 }

@@ -1,7 +1,6 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,6 +8,7 @@ import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
 import ru.skypro.homework.exception.InvalidPasswordException;
+import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.mapper.UserMapper;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.UserRepository;
