@@ -129,7 +129,7 @@ public class UserController {
     /**
      * Метод сохраняет или обновляет аватар пользователя
      *
-     * @param file - аватар пользователя
+     * @param image - аватар пользователя
      * @return Статус 200 при успешном обновлении или
      * статус 401 если пользователь не авторизован
      */
@@ -142,13 +142,13 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Аватар пользователе сохранен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> updateUsersAvatar(@RequestParam("file") @Valid MultipartFile file) throws IOException {
+    public ResponseEntity<?> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) throws IOException {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        userService.updateUsersAvatar(securityHelper.getCurrentUsername(), file);
+        userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
         return ResponseEntity.ok().build();
     }
 

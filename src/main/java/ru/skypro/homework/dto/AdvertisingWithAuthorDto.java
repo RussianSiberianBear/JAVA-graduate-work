@@ -24,7 +24,7 @@ public record AdvertisingWithAuthorDto(
         @Schema(description = "Телефон пользователя", example = "+7499 123123")
         String phone,
 
-        @Schema(description = "Стоимость объявления", example = "123.00")
+        @Schema(description = "Стоимость объявления", example = "123")
         String price,
 
         @Schema(description = "Заголовок объявления", example = "Корм для живтоных")

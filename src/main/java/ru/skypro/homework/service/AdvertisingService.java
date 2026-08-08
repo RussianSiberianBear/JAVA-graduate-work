@@ -3,6 +3,7 @@ package ru.skypro.homework.service;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import ru.skypro.homework.config.StorageDirectories;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
@@ -14,8 +15,12 @@ import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
+import ru.skypro.homework.service.storage.FileStorageService;
+import ru.skypro.homework.service.storage.FileUploadRequest;
+import ru.skypro.homework.service.storage.StoredFileInfo;
 import ru.skypro.homework.util.SecurityHelper;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -24,21 +29,24 @@ public class AdvertisingService {
     private final AdvertisingRepository advertisingRepository;
     private final AdvertisingMapper advertisingMapper;
     private final UserRepository userRepository;
-    private final AdvertisingPrice advertisingPrice;
     private final SecurityHelper securityHelper;
+    private final FileStorageService fileService;
 
-    public AdvertisingService(AdvertisingRepository advertisingRepository, AdvertisingMapper advertisingMapper, UserRepository userRepository, AdvertisingPrice advertisingPrice, SecurityHelper securityHelper) {
+    public AdvertisingService(AdvertisingRepository advertisingRepository,
+                              AdvertisingMapper advertisingMapper,
+                              UserRepository userRepository,
+                              SecurityHelper securityHelper,
+                              FileStorageService fileStorageService) {
         this.advertisingRepository = advertisingRepository;
         this.advertisingMapper = advertisingMapper;
         this.userRepository = userRepository;
-        this.advertisingPrice = advertisingPrice;
         this.securityHelper = securityHelper;
+        this.fileService = fileStorageService;
     }
 
     public Advertising findById(Long id) {
         return advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + id + " не найдено!"));
-
     }
 
     public AdvertisingAllResponseDto findAll() {
@@ -47,17 +55,25 @@ public class AdvertisingService {
     }
 
     @Transactional
-    public AdvertisingOneResponseDto createAds(String username, CreateOrUpdateAd properties, MultipartFile file) {
+    public AdvertisingOneResponseDto createAds(String username, CreateOrUpdateAd properties, MultipartFile file) throws IOException {
 
         User user = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
 
+        FileUploadRequest fur = new FileUploadRequest(
+                StorageDirectories.ADS,
+                file.getOriginalFilename(),
+                file.getContentType(),
+                file.getSize(),
+                file.getInputStream()
+        );
+
         Advertising advertising = advertisingMapper.toEntity(properties);
         advertising.setAuthor(user);
-        advertising.setImage(file.getOriginalFilename());
-        //TODO добавить сохранение файла!
-        Advertising adsSaved = advertisingRepository.save(advertising);
+        StoredFileInfo storedFile = fileService.upload(fur);
+        advertising.setImageFileId(storedFile.id());
 
+        Advertising adsSaved = advertisingRepository.save(advertising);
         return advertisingMapper.toResponse(adsSaved);
     }
 
@@ -95,13 +111,20 @@ public class AdvertisingService {
         Advertising ad = advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
 
-        String oldImage = ad.getImage();
+        String oldImage = ad.getImageFileId();
         try {
-            ad.setImage(file.getOriginalFilename());
+            FileUploadRequest fur = new FileUploadRequest(
+                    StorageDirectories.ADS,
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getSize(),
+                    file.getInputStream()
+            );
+            StoredFileInfo storedFile = fileService.replace(oldImage, fur);
+            ad.setImageFileId(storedFile.id());
             advertisingRepository.save(ad);
-            //TODO добавить сохранение файла и удаление старого!
         } catch (Exception e) {
-            ad.setImage(oldImage);
+            ad.setImageFileId(oldImage);
             advertisingRepository.save(ad);
         }
     }

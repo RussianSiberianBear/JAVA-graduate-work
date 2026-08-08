@@ -46,7 +46,7 @@ public record UserInfoResponseDto(
                 example = "/images/avatars/john_doe.jpg",
                 type = "string",
                 format = "uri")
-        String avatarFileName
+        String image
 
 ) {
 }

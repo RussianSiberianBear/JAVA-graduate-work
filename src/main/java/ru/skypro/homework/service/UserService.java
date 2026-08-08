@@ -3,7 +3,9 @@ package ru.skypro.homework.service;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import ru.skypro.homework.config.StorageDirectories;
 import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
@@ -12,6 +14,9 @@ import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.mapper.UserMapper;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.UserRepository;
+import ru.skypro.homework.service.storage.FileStorageService;
+import ru.skypro.homework.service.storage.FileUploadRequest;
+import ru.skypro.homework.service.storage.StoredFileInfo;
 
 import java.io.IOException;
 
@@ -24,9 +29,12 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
-    private final FileService fileService;
+    private final FileStorageService fileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper, FileService fileService) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       UserMapper userMapper,
+                       FileStorageService fileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
@@ -108,7 +116,21 @@ public class UserService {
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 
         User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
-        fileService.uploadAvatarFile(user, file);
+
+        FileUploadRequest fur = new FileUploadRequest(
+                StorageDirectories.AVATARS,
+                file.getOriginalFilename(),
+                file.getContentType(),
+                file.getSize(),
+                file.getInputStream()
+        );
+
+        StoredFileInfo storedFile = StringUtils.hasText(user.getAvatarFileId())
+                ? fileService.replace(user.getAvatarFileId(), fur)
+                : fileService.upload(fur);
+
+        user.setAvatarFileId(storedFile.id());
+        userRepository.save(user);
     }
 
 }

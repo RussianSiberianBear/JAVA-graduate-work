@@ -20,7 +20,7 @@ import java.util.Set;
 
 @Service
 @Slf4j
-public class FileService {
+public class LocalFileService {
 
     private static final long SHARD_SIZE = 10_000; // 10 000 пользователей в одном шарде
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -28,7 +28,7 @@ public class FileService {
 
     private final UserRepository userRepository;
 
-    public FileService(UserRepository userRepository) {
+    public LocalFileService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 

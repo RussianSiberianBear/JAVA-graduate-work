@@ -28,5 +28,5 @@ public class User {
     @Column(nullable = false, length = 32)
     private Role role = Role.USER;
     @Column(length = 32)
-    private String image;
+    private String avatarFileId;
 }

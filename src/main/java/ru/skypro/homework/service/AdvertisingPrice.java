@@ -7,9 +7,9 @@ import java.math.BigDecimal;
 @Service
 public class AdvertisingPrice {
 
-    private final BigDecimal PRICE = BigDecimal.valueOf(1.0);
+    private final Integer PRICE = 100;
 
-    public BigDecimal getPrice() {
+    public Integer getPrice() {
         return PRICE;
     }
 }

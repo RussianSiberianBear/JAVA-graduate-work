@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 public record AdvertisingOneResponseDto(
 
         @Schema(description = "Идентификатор объявления", example = "1")
-        Long id,
+        Long pk,
 
         @Schema(description = "Идентификатор автора", example = "100")
         Long author,
@@ -16,8 +16,8 @@ public record AdvertisingOneResponseDto(
         @Schema(description = "Ссылка на изображение", example = "/images/ad_1.jpg")
         String image,
 
-        @Schema(description = "Цена товара", example = "4999.99")
-        BigDecimal price,
+        @Schema(description = "Цена товара", example = "4999")
+        Integer price,
 
         @Schema(description = "Заголовок объявления", example = "iPhone 15 Pro Max")
         String title

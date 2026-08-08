@@ -11,19 +11,19 @@ public record Login(
         @Schema(description = "Логин пользователя (email)",
                 example = "john.doe@example.com",
                 required = true,
-                maxLength = 50)
+                maxLength = 32)
         @NotBlank(message = "Логин не может быть пустым")
         @Email(message = "Логин должен быть корректным email адресом")
-        @Size(max = 50, message = "Логин не может превышать 50 символов")
+        @Size(max = 32, message = "Логин не может превышать 32 символа")
         String username,
 
         @Schema(description = "Пароль пользователя",
                 example = "SecurePass123!",
                 required = true,
-                minLength = 6,
-                maxLength = 32)
+                minLength = 8,
+                maxLength = 16)
         @NotBlank(message = "Пароль не может быть пустым")
-        @Size(min = 6, max = 32, message = "Пароль должен содержать от 6 до 32 символов")
+        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
         String password
 
 ) {

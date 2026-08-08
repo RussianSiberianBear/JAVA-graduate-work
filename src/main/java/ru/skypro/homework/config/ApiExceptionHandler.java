@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.skypro.homework.exception.AdvertisingNotFoundException;
+import ru.skypro.homework.exception.CommentNotFoundException;
 import ru.skypro.homework.exception.InvalidPasswordException;
 import ru.skypro.homework.exception.UsernameNotFoundException;
 
@@ -57,9 +58,15 @@ public class ApiExceptionHandler {
                 .body(errors);
     }
 
-    @ExceptionHandler(UsernameNotFoundException.class)
+    @ExceptionHandler(AdvertisingNotFoundException.class)
     public ResponseEntity<String> handleAdvertisingNotFoundException(AdvertisingNotFoundException ex) {
         log.warn("API advertising not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<String> handleCommentNotFoundException(CommentNotFoundException ex) {
+        log.warn("API comment not found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }

@@ -50,8 +50,8 @@ public class CommentService {
         comment.setText(dto.text());
         comment.setAdvertising(ad);
         comment.setCreatedAt(LocalDateTime.now());
-
-        return commentMapper.toResponse(comment);
+        Comment commentSaved = commentRepository.save(comment);
+        return commentMapper.toResponse(commentSaved);
     }
 
     public void deleteCommentByIdAndAdvertisingById(Long commentId, Long advertisingId) {

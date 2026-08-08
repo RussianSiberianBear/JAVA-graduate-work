@@ -23,10 +23,10 @@ public class Advertising {
     private User author;
 
     @Column(nullable = false, unique = true, length = 32)
-    private String image;
+    private String imageFileId;
 
     @Column(nullable = false)
-    private BigDecimal price;
+    private Integer price;
 
     @Column(nullable = false, length = 255)
     private String title;

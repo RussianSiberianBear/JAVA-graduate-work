@@ -14,11 +14,19 @@ public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseD
 
     @Override
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "image", ignore = true)
+    @Mapping(target = "avatarFileId", ignore = true)
     User toEntity(Register request);
 
     @Override
-    @Mapping(target = "username", ignore = true)
-    @Mapping(target = "password", ignore = true)
+    @Mapping(
+            target = "image",
+            expression = "java(toImageUrl(user.getAvatarFileId()))"
+    )
     UserInfoResponseDto toResponse(User user);
+
+    default String toImageUrl(String fileId) {
+        return fileId == null
+                ? null
+                : "/images/" + fileId;
+    }
 }

@@ -62,7 +62,7 @@ public class AdsController {
             @ApiResponse(responseCode = "201", description = "Объявление добавлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) {
+    public ResponseEntity<?> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) throws IOException {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

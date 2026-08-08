@@ -11,22 +11,30 @@ import ru.skypro.homework.model.Advertising;
 @Mapper(componentModel = "spring")
 public interface AdvertisingMapper {
 
+    @Mapping(
+            target = "image",
+            expression = "java(toImageUrl(ads.getImageFileId()))"
+    )
     @Mapping(target = "author", source = "author.id")
     @Mapping(target = "pk", source = "id")
     AdvertisingOneResponseDto toResponse(Advertising ads);
 
+    @Mapping(
+            target = "image",
+            expression = "java(toImageUrl(ads.getImageFileId()))"
+    )
     @Mapping(target = "pk", source = "id")
     @Mapping(target = "authorFirstName", source = "author.firstName")
     @Mapping(target = "authorLastName", source = "author.lastName")
     AdvertisingWithAuthorDto toResponseWithAuthor(Advertising ads);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "author", ignore = true)
-    @Mapping(target = "image", ignore = true)
     Advertising toEntity(CreateOrUpdateAd createOrUpdateAd);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "author", ignore = true)
-    @Mapping(target = "image", ignore = true)
     void updateEntity(CreateOrUpdateAd createOrUpdateAd, @MappingTarget Advertising advertising);
+
+    default String toImageUrl(String fileId) {
+        return fileId == null
+                ? null
+                : "/images/" + fileId;
+    }
 }
