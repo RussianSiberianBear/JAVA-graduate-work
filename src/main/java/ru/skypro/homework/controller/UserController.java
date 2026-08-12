@@ -15,9 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.SetPasswordRequestDto;
 import ru.skypro.homework.dto.SetPasswordResponseDto;
+import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
-import ru.skypro.homework.service.UserService;
 import ru.skypro.homework.security.SecurityHelper;
+import ru.skypro.homework.service.UserService;
 
 import java.io.IOException;
 
@@ -54,14 +55,14 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
 
-    public ResponseEntity<?> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
+    public ResponseEntity<SetPasswordResponseDto> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (!securityHelper.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
+        if (securityHelper.getAuthorities().stream()
+                .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
                         auth.getAuthority().equals("ROLE_USER"))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -93,7 +94,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Информация о пользователе получена"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> getUsersInfo() {
+    public ResponseEntity<UserInfoResponseDto> getUsersInfo() {
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -116,7 +117,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Обновленные данные пользователя"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> updateUsersInfo(@RequestBody @Valid UserUpdateInfoDto request) {
+    public ResponseEntity<UserUpdateInfoDto> updateUsersInfo(@RequestBody @Valid UserUpdateInfoDto request) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -141,7 +142,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Аватар пользователе сохранен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) throws IOException {
+    public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) throws IOException {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
+import ru.skypro.homework.constants.ExceptionMessages;
 import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
@@ -51,7 +52,7 @@ public class UserService {
     public UserInfoResponseDto getUserInfo(String username) {
         return userRepository.findByEmail(username)
                 .map(userMapper::toResponse)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
     }
 
     /**
@@ -66,7 +67,7 @@ public class UserService {
     public SetPasswordResponseDto passwordUpdate(String username, String currentPassword, String newPassword) {
 
         User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new InvalidPasswordException("Неверный текущий пароль");
@@ -83,7 +84,7 @@ public class UserService {
     public UserInfoResponseDto findUserByPhone(String phone) {
         return userRepository.findByPhone(phone)
                 .map(userMapper::toResponse)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь  не найден!"));
+                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound("")));
     }
 
     /**
@@ -97,7 +98,7 @@ public class UserService {
     @Transactional
     public UserUpdateInfoDto updateUser(String username, UserUpdateInfoDto dto) {
 
-        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
         if (dto.firstName() != null) {
             user.setFirstName(dto.firstName());
         }
@@ -115,7 +116,7 @@ public class UserService {
     @Transactional
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 
-        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
         FileUploadRequest fur = new FileUploadRequest(
                 StorageDirectories.AVATARS,

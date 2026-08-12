@@ -16,7 +16,7 @@ public record CommentOneResponseDto(
         @Schema(description = "Имя автора", example = "Joe")
         String authorFirstName,
 
-        @Schema(description = "Дата создания комментария", example = "1723132800000")
+        @Schema(description = "Дата создания комментария в миллисекундах time stamp", example = "1723132800000")
         String createdAt,
 
         @Schema(description = "Текст комментария", example = "Мой комментарий к объявлению")

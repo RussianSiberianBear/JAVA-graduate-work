@@ -1,6 +1,7 @@
 package ru.skypro.homework.service;
 
 import org.springframework.stereotype.Service;
+import ru.skypro.homework.constants.ExceptionMessages;
 import ru.skypro.homework.dto.CommentOneResponseDto;
 import ru.skypro.homework.dto.CommentRequestDto;
 import ru.skypro.homework.dto.CommentsAllResponseDto;
@@ -36,14 +37,14 @@ public class CommentService {
     public CommentsAllResponseDto findByAdvertisingId(Long id) {
         List<CommentOneResponseDto> commentListDto = commentRepository.findAllByAdvertisingId(id).stream().map(commentMapper::toResponse).toList();
         advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id = " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
         return new CommentsAllResponseDto(commentListDto.size(), commentListDto);
     }
 
     public CommentOneResponseDto addCommentToAdvertisingId(User user, Long id, CommentRequestDto dto) {
 
         Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
         Comment comment = new Comment();
         comment.setAuthor(user);
@@ -57,20 +58,20 @@ public class CommentService {
     public void deleteCommentByIdAndAdvertisingById(Long commentId, Long advertisingId) {
 
         advertisingRepository.findById(advertisingId)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + advertisingId + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(advertisingId)));
 
         Long id = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentNotFoundException("Комментарий с идентификатором id = " + commentId + " не найден!")).getId();
+                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId))).getId();
         commentRepository.deleteById(id);
     }
 
     public CommentOneResponseDto updateCommentByIdAndAdvertisingById(Long commentId, Long advertisingId, CommentRequestDto dto) {
 
         advertisingRepository.findById(advertisingId)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + advertisingId + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(advertisingId)));
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentNotFoundException("Комментарий с идентификатором id = " + commentId + " не найден!"));
+                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
 
         comment.setText(dto.text());
         commentRepository.save(comment);

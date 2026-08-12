@@ -5,4 +5,5 @@ public record StoredFileInfo(
         String fileName,
         String contentType,
         long size
-) {}
+) {
+}

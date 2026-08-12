@@ -8,4 +8,5 @@ public record FileUploadRequest(
         String contentType,
         long size,
         InputStream content
-) {}
+) {
+}

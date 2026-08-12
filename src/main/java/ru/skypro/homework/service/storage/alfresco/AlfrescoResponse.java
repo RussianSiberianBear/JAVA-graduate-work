@@ -10,11 +10,13 @@ public record AlfrescoResponse(Entry entry) {
             String id,
             String name,
             Content content
-    ) {}
+    ) {
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Content(
             String mimeType,
             Long sizeInBytes
-    ) {}
+    ) {
+    }
 }

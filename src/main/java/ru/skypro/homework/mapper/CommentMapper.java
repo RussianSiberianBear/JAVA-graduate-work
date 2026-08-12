@@ -2,43 +2,41 @@ package ru.skypro.homework.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import ru.skypro.homework.dto.CommentOneResponseDto;
 import ru.skypro.homework.model.Comment;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
-    @Mapping(
-            target = "image",
-            expression = "java(toImageUrl(author.getAvatarFileId()))"
-    )
-    @Mapping(target = "advertising", ignore = true)
+
+    @Mapping(target = "pk", source = "id")
     @Mapping(target = "author", source = "author.id")
     @Mapping(target = "authorFirstName", source = "author.firstName")
-    @Mapping(target = "pk", source = "id")
+    @Mapping(
+            target = "authorImage",
+            source = "comment.author.avatarFileId",
+            qualifiedByName = "toImageUrl"
+    )
     @Mapping(
             target = "createdAt",
-            expression = "java(toTimestamp(comment.getCreatedAt()))"
+            source = "createdAt",
+            qualifiedByName = "toStringTimestamp"
     )
     CommentOneResponseDto toResponse(Comment comment);
 
+    @Named("toImageUrl")
     default String toImageUrl(String fileId) {
-        return fileId == null
-                ? null
-                : "/images/" + fileId;
+        return fileId == null ? null : "/images/" + fileId;
     }
 
-    // Преобразование LocalDateTime → timestamp (миллисекунды)
-    default Long toTimestamp(LocalDateTime dateTime) {
+    @Named("toStringTimestamp")
+    default String toStringTimestamp(LocalDateTime dateTime) {
         if (dateTime == null) {
             return null;
         }
-        return dateTime
-                .atZone(ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli();
+        return String.valueOf(dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
     }
 }

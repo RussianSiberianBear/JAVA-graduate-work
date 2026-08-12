@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
+import ru.skypro.homework.constants.ExceptionMessages;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
@@ -15,10 +16,10 @@ import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
+import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFileInfo;
-import ru.skypro.homework.security.SecurityHelper;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,7 +47,7 @@ public class AdvertisingService {
 
     public Advertising findById(Long id) {
         return advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id= " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id = " + id + " не найдено!"));
     }
 
     public AdvertisingAllResponseDto findAll() {
@@ -57,7 +58,7 @@ public class AdvertisingService {
     @Transactional
     public AdvertisingOneResponseDto createAds(String username, CreateOrUpdateAd properties, MultipartFile file) throws IOException {
 
-        User user = userRepository.findByUsernameIgnoreCase(username)
+        User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
 
         FileUploadRequest fur = new FileUploadRequest(
@@ -80,7 +81,7 @@ public class AdvertisingService {
     @Transactional
     public AdvertisingOneResponseDto updateById(Long id, CreateOrUpdateAd properties) {
         Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
         // Обновляем существующий объект
         advertisingMapper.updateEntity(properties, ad);
@@ -96,7 +97,7 @@ public class AdvertisingService {
 
     public AdvertisingWithAuthorDto getAdById(Long id) {
         Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
         return advertisingMapper.toResponseWithAuthor(ad);
     }
 
@@ -109,7 +110,7 @@ public class AdvertisingService {
     public void updateAdsImage(Long id, MultipartFile file) {
 
         Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
         String oldImage = ad.getImageFileId();
         try {
@@ -131,7 +132,7 @@ public class AdvertisingService {
 
     public boolean isAnotherAuthor(Long adsId) {
         Advertising ad = advertisingRepository.findById(adsId)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с id = " + adsId + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adsId)));
         return !ad.getAuthor().getId().equals(securityHelper.getCurrentUserId());
     }
 }

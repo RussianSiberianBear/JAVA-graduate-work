@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.math.BigDecimal;
-
 @Data
 @Entity
 @Table(name = "advertising")

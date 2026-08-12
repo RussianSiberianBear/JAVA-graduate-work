@@ -12,9 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.*;
+import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.AdvertisingService;
 import ru.skypro.homework.service.CommentService;
-import ru.skypro.homework.security.SecurityHelper;
 
 import java.io.IOException;
 
@@ -41,7 +41,7 @@ public class AdsController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Все объявления получены")
     })
-    public ResponseEntity<?> getAllAds() {
+    public ResponseEntity<AdvertisingAllResponseDto> getAllAds() {
 
         return ResponseEntity.ok(advertisingService.findAll());
     }
@@ -61,7 +61,7 @@ public class AdsController {
             @ApiResponse(responseCode = "201", description = "Объявление добавлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) throws IOException {
+    public ResponseEntity<AdvertisingOneResponseDto> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) throws IOException {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -196,14 +196,14 @@ public class AdsController {
             @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
             @ApiResponse(responseCode = "404", description = "Картинка с заданным идентификатором не найдена")
     })
-    public ResponseEntity<?> updateAdsImage(@PathVariable @Valid Long id, @RequestParam("file") @Valid MultipartFile file) throws IOException {
+    public ResponseEntity updateAdsImage(@PathVariable @Valid Long id, @RequestParam("file") @Valid MultipartFile file) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (!securityHelper.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
+        if (securityHelper.getAuthorities().stream()
+                .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
                         auth.getAuthority().equals("ROLE_USER"))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -285,7 +285,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
     })
     @DeleteMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId) {
+    public ResponseEntity<String> deleteComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -320,7 +320,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
     })
     @PatchMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<?> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestPart("text") CommentRequestDto text) {
+    public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestPart("text") CommentRequestDto text) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

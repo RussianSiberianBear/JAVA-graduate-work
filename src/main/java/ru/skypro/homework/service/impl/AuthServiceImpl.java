@@ -59,7 +59,7 @@ public class AuthServiceImpl implements AuthService {
         } catch (UsernameNotFoundException e) {
             User user = userMapper.toEntity(register);
             user.setPassword(encoder.encode(register.password()));
-            userRepository.save(userMapper.toEntity(register));
+            userRepository.save(user);
             return true;
         }
     }
