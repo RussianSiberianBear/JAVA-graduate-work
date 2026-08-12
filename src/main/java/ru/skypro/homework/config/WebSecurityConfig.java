@@ -33,7 +33,6 @@ public class WebSecurityConfig {
                                 .requestMatchers(AUTH_WHITELIST).permitAll()
                                 .requestMatchers("/users/**").authenticated()
                 )
-                .cors(cors -> cors.disable())
                 .httpBasic(withDefaults());
 
         return http.build();
