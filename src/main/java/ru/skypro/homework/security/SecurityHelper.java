@@ -32,8 +32,8 @@ public class SecurityHelper {
 
         Object principal = authentication.getPrincipal();
 
-        if (principal instanceof User user) {
-            return user;
+        if (principal instanceof UserDetailsImpl user) {
+            return user.getUser();
         }
 
         return null;
