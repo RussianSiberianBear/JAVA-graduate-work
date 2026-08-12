@@ -53,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public boolean register(Register register) {
         try {
+            // прверяем и не допускаем регистрации с одинаковым username(у нас это e-mail)
             userDetailsService.loadUserByUsername(register.username());
             return false;
         } catch (UsernameNotFoundException e) {

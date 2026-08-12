@@ -21,12 +21,6 @@ databaseChangeLog:
                     nullable: false
                     unique: true
               - column:
-                  name: username
-                  type: VARCHAR(32)
-                  constraints:
-                    nullable: false
-                    unique: true
-              - column:
                   name: password
                   type: VARCHAR(255)
                   constraints:
@@ -52,7 +46,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: image
+                  name: avatar_file_id
                   type: VARCHAR(32)
 
         # Таблица объявлений
@@ -72,14 +66,14 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: image
+                  name: image_file_id
                   type: VARCHAR(32)
                   constraints:
                     nullable: false
                     unique: true
               - column:
                   name: price
-                  type: DECIMAL(10,2)
+                  type: INT
                   constraints:
                     nullable: false
               - column:
@@ -178,10 +172,3 @@ databaseChangeLog:
             columns:
               - column:
                   name: email
-
-        - createIndex:
-            tableName: "user"
-            indexName: idx_user_username
-            columns:
-              - column:
-                  name: username

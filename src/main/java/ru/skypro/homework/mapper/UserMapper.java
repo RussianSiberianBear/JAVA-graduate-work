@@ -14,6 +14,7 @@ public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseD
 
     @Override
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "email", source = "username")
     @Mapping(target = "avatarFileId", ignore = true)
     User toEntity(Register request);
 

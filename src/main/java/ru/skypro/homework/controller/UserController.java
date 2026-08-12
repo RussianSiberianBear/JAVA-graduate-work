@@ -17,12 +17,11 @@ import ru.skypro.homework.dto.SetPasswordRequestDto;
 import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
 import ru.skypro.homework.service.UserService;
-import ru.skypro.homework.util.SecurityHelper;
+import ru.skypro.homework.security.SecurityHelper;
 
 import java.io.IOException;
 
 @Slf4j
-@CrossOrigin(value = "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")

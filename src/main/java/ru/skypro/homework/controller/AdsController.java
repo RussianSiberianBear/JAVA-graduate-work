@@ -14,12 +14,11 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.*;
 import ru.skypro.homework.service.AdvertisingService;
 import ru.skypro.homework.service.CommentService;
-import ru.skypro.homework.util.SecurityHelper;
+import ru.skypro.homework.security.SecurityHelper;
 
 import java.io.IOException;
 
 @Slf4j
-@CrossOrigin(value = "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/ads")

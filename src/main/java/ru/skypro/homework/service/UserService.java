@@ -49,7 +49,7 @@ public class UserService {
      * @return DTO с данными пользователя
      */
     public UserInfoResponseDto getUserInfo(String username) {
-        return userRepository.findByUsernameIgnoreCase(username)
+        return userRepository.findByEmail(username)
                 .map(userMapper::toResponse)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
     }
@@ -65,7 +65,7 @@ public class UserService {
     @Transactional
     public SetPasswordResponseDto passwordUpdate(String username, String currentPassword, String newPassword) {
 
-        User user = userRepository.findByUsernameIgnoreCase(username)
+        User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
@@ -97,7 +97,7 @@ public class UserService {
     @Transactional
     public UserUpdateInfoDto updateUser(String username, UserUpdateInfoDto dto) {
 
-        User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
         if (dto.firstName() != null) {
             user.setFirstName(dto.firstName());
         }
@@ -115,7 +115,7 @@ public class UserService {
     @Transactional
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 
-        User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
 
         FileUploadRequest fur = new FileUploadRequest(
                 StorageDirectories.AVATARS,

@@ -1,4 +1,4 @@
-package ru.skypro.homework.util;
+package ru.skypro.homework.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -44,7 +44,7 @@ public class SecurityHelper {
      */
     public String getCurrentUsername() {
         User user = getCurrentUser();
-        return user != null ? user.getUsername() : null;
+        return user != null ? user.getEmail() : null;
     }
 
     /**

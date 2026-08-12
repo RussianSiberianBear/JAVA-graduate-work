@@ -18,7 +18,7 @@ import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFileInfo;
-import ru.skypro.homework.util.SecurityHelper;
+import ru.skypro.homework.security.SecurityHelper;
 
 import java.io.IOException;
 import java.util.List;
