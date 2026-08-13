@@ -200,10 +200,12 @@ public class AdsController {
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
         if (securityHelper.getAuthorities().stream()
                 .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
                         auth.getAuthority().equals("ROLE_USER"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        if (advertisingService.isAnotherAuthor(id) && !securityHelper.isAdmin()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
