@@ -23,7 +23,7 @@ public interface CommentMapper {
     @Mapping(
             target = "createdAt",
             source = "createdAt",
-            qualifiedByName = "toStringTimestamp"
+            qualifiedByName = "toTimestamp"
     )
     CommentOneResponseDto toResponse(Comment comment);
 
@@ -32,11 +32,11 @@ public interface CommentMapper {
         return fileId == null ? null : "/images/" + fileId;
     }
 
-    @Named("toStringTimestamp")
-    default String toStringTimestamp(LocalDateTime dateTime) {
+    @Named("toTimestamp")
+    default Long toTimestamp(LocalDateTime dateTime) {
         if (dateTime == null) {
             return null;
         }
-        return String.valueOf(dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        return dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 }
