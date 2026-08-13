@@ -13,6 +13,7 @@ import ru.skypro.homework.model.Comment;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.CommentRepository;
+import ru.skypro.homework.security.SecurityHelper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,11 +23,13 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final CommentRepository commentRepository;
     private final AdvertisingRepository advertisingRepository;
+    private final SecurityHelper securityHelper;
 
-    public CommentService(AdvertisingRepository advertisingRepository, CommentMapper commentMapper, CommentRepository commentRepository) {
+    public CommentService(AdvertisingRepository advertisingRepository, CommentMapper commentMapper, CommentRepository commentRepository, SecurityHelper securityHelper) {
         this.commentMapper = commentMapper;
         this.commentRepository = commentRepository;
         this.advertisingRepository = advertisingRepository;
+        this.securityHelper = securityHelper;
     }
 
     public CommentsAllResponseDto findAll() {
@@ -57,25 +60,25 @@ public class CommentService {
 
     public void deleteCommentByIdAndAdvertisingById(Long commentId, Long advertisingId) {
 
-        advertisingRepository.findById(advertisingId)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(advertisingId)));
-
-        Long id = commentRepository.findById(commentId)
+        Long id = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
                 .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId))).getId();
         commentRepository.deleteById(id);
     }
 
     public CommentOneResponseDto updateCommentByIdAndAdvertisingById(Long commentId, Long advertisingId, CommentRequestDto dto) {
 
-        advertisingRepository.findById(advertisingId)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(advertisingId)));
-
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
+        Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
+                .orElseThrow(() ->  new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
 
         comment.setText(dto.text());
         commentRepository.save(comment);
         return commentMapper.toResponse(comment);
+    }
+
+    public boolean isAnotherAuthor(Long commentId, Long advertisingId) {
+       Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
+                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
+        return !comment.getAuthor().getId().equals(securityHelper.getCurrentUserId());
     }
 
 }

@@ -153,7 +153,6 @@ public class AdsController {
         return ResponseEntity.ok(advertisingService.updateById(id, properties));
     }
 
-
     /**
      * Метод получает все объявления авторизованного пользователя
      *
@@ -290,7 +289,7 @@ public class AdsController {
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!securityHelper.isAdmin()) {
+        if (commentService.isAnotherAuthor(commentId, adId) && !securityHelper.isAdmin()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -325,9 +324,10 @@ public class AdsController {
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!securityHelper.isAdmin()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (commentService.isAnotherAuthor(commentId, adId) && !securityHelper.isAdmin()) {
+                  return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        return ResponseEntity.ok(commentService.updateCommentByIdAndAdvertisingById(adId, commentId, text));
+
+        return ResponseEntity.ok(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, text));
     }
 }

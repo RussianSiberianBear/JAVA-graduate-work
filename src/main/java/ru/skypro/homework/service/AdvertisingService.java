@@ -47,7 +47,7 @@ public class AdvertisingService {
 
     public Advertising findById(Long id) {
         return advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException("Объявление с идентификатором id = " + id + " не найдено!"));
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
     }
 
     public AdvertisingAllResponseDto findAll() {
@@ -59,7 +59,7 @@ public class AdvertisingService {
     public AdvertisingOneResponseDto createAds(String username, CreateOrUpdateAd properties, MultipartFile file) throws IOException {
 
         User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь " + username + " не найден!"));
+                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
         FileUploadRequest fur = new FileUploadRequest(
                 StorageDirectories.ADS,

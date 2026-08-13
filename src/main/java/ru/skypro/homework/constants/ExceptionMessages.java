@@ -20,8 +20,8 @@ public class ExceptionMessages {
         return AD_NOT_FOUND.replace("{adsId}", String.valueOf(adsId));
     }
 
-    public static String formatUserNotFound(String userId) {
-        return USER_NOT_FOUND.replace("{userId}", userId);
+    public static String formatUserNotFound(String username) {
+        return USER_NOT_FOUND.replace("{username}", username);
     }
 
     public static String formatCommentNotFound(Long commentId) {
