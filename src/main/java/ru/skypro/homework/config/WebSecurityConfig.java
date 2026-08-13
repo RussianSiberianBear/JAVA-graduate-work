@@ -24,14 +24,14 @@ public class WebSecurityConfig {
             "/ads/**"
     };
 
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
                 .authorizeHttpRequests(authorization ->
                         authorization
                                 .requestMatchers(AUTH_WHITELIST).permitAll()
-                                .requestMatchers("/users/**").authenticated()
+                                      .requestMatchers("/users/**").authenticated()
                 )
                 .httpBasic(withDefaults());
 
