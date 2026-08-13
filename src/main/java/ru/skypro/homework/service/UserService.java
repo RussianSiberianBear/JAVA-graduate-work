@@ -7,7 +7,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
 import ru.skypro.homework.constants.ExceptionMessages;
-import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
 import ru.skypro.homework.exception.InvalidPasswordException;
@@ -64,7 +63,7 @@ public class UserService {
      * @return - DTO ответа по обрновлению пароля пользователя
      */
     @Transactional
-    public SetPasswordResponseDto passwordUpdate(String username, String currentPassword, String newPassword) {
+    public void passwordUpdate(String username, String currentPassword, String newPassword) {
 
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
@@ -77,8 +76,6 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-
-        return new SetPasswordResponseDto(oldPassword, newPassword);
     }
 
     public UserInfoResponseDto findUserByPhone(String phone) {

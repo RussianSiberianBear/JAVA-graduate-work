@@ -14,7 +14,6 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.SetPasswordRequestDto;
-import ru.skypro.homework.dto.SetPasswordResponseDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
 import ru.skypro.homework.security.SecurityHelper;
@@ -55,7 +54,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
 
-    public ResponseEntity<SetPasswordResponseDto> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
+    public ResponseEntity<String> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -69,13 +68,13 @@ public class UserController {
 
         String username = securityHelper.getCurrentUsername();
 
-        SetPasswordResponseDto response = userService.passwordUpdate(
+        userService.passwordUpdate(
                 username,
                 request.currentPassword(),
                 request.newPassword()
         );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok().build();
     }
 
     /**
