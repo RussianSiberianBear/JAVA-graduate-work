@@ -141,14 +141,17 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Аватар пользователе сохранен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) throws IOException {
+    public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
-        return ResponseEntity.ok().build();
+        try {
+            userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
+            return ResponseEntity.ok().build();
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
 }

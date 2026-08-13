@@ -41,7 +41,6 @@ public class UserService {
         this.fileService = fileService;
     }
 
-
     /**
      * Метод выдает информацию по пользователю с именем(логином) username
      *
@@ -110,6 +109,12 @@ public class UserService {
         return new UserUpdateInfoDto(user.getFirstName(), user.getLastName(), user.getPhone());
     }
 
+    /**
+     * Метод обновляет аватар пользователя
+     * @param username - логин пользователя
+     * @param file - файл аватарки пользователя
+     * @throws IOException - проверяемое исключение ввода-вывода
+     */
     @Transactional
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 

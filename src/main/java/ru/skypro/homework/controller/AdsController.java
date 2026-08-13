@@ -61,13 +61,17 @@ public class AdsController {
             @ApiResponse(responseCode = "201", description = "Объявление добавлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<AdvertisingOneResponseDto> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) throws IOException {
+    public ResponseEntity<AdvertisingOneResponseDto> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(advertisingService.createAds(securityHelper.getCurrentUsername(), properties, image));
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(advertisingService.createAds(securityHelper.getCurrentUsername(), properties, image));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
