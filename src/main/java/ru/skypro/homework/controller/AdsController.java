@@ -325,7 +325,7 @@ public class AdsController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         if (commentService.isAnotherAuthor(commentId, adId) && !securityHelper.isAdmin()) {
-                  return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         return ResponseEntity.ok(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, text));

@@ -68,7 +68,7 @@ public class CommentService {
     public CommentOneResponseDto updateCommentByIdAndAdvertisingById(Long commentId, Long advertisingId, CommentRequestDto dto) {
 
         Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
-                .orElseThrow(() ->  new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
+                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
 
         comment.setText(dto.text());
         commentRepository.save(comment);
@@ -76,7 +76,7 @@ public class CommentService {
     }
 
     public boolean isAnotherAuthor(Long commentId, Long advertisingId) {
-       Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
+        Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
                 .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
         return !comment.getAuthor().getId().equals(securityHelper.getCurrentUserId());
     }

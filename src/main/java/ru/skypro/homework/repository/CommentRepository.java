@@ -3,7 +3,6 @@ package ru.skypro.homework.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.skypro.homework.model.Comment;
 
-import java.lang.ScopedValue;
 import java.util.List;
 import java.util.Optional;
 
