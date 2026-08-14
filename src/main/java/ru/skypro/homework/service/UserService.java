@@ -48,6 +48,7 @@ public class UserService {
      * @return DTO с данными пользователя
      */
     public UserInfoResponseDto getUserInfo(String username) {
+
         return userRepository.findByEmail(username)
                 .map(userMapper::toResponse)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
@@ -68,16 +69,15 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new InvalidPasswordException("Неверный текущий пароль");
+            throw new InvalidPasswordException(ExceptionMessages.invalidCurrentPassword());
         }
-
-        String oldPassword = user.getPassword();
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 
     public UserInfoResponseDto findUserByPhone(String phone) {
+
         return userRepository.findByPhone(phone)
                 .map(userMapper::toResponse)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound("")));
@@ -111,8 +111,9 @@ public class UserService {
 
     /**
      * Метод обновляет аватар пользователя
+     *
      * @param username - логин пользователя
-     * @param file - файл аватарки пользователя
+     * @param file     - файл аватарки пользователя
      * @throws IOException - проверяемое исключение ввода-вывода
      */
     @Transactional

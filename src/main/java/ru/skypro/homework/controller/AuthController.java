@@ -40,6 +40,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Неверный логин или пароль")
     })
     public ResponseEntity<String> login(@Valid @RequestBody Login login) {
+
         if (authService.login(login.username(), login.password())) {
             return ResponseEntity.ok().build();
         } else {
@@ -64,6 +65,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Неверные данные запроса или пользователь уже существует")
     })
     public ResponseEntity<String> register(@Valid @RequestBody Register register) {
+
         if (authService.register(register)) {
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } else {

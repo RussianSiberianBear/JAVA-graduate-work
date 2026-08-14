@@ -31,7 +31,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authorization ->
                         authorization
                                 .requestMatchers(AUTH_WHITELIST).permitAll()
-                                      .requestMatchers("/users/**").authenticated()
+                                .requestMatchers("/users/**").authenticated()
                 )
                 .httpBasic(withDefaults());
 

@@ -46,11 +46,13 @@ public class AdvertisingService {
     }
 
     public Advertising findById(Long id) {
+
         return advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
     }
 
     public AdvertisingAllResponseDto findAll() {
+
         List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAll().stream().map(advertisingMapper::toResponse).toList();
         return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
     }
@@ -80,6 +82,7 @@ public class AdvertisingService {
 
     @Transactional
     public AdvertisingOneResponseDto updateById(Long id, CreateOrUpdateAd properties) {
+
         Advertising ad = advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
@@ -91,11 +94,13 @@ public class AdvertisingService {
     }
 
     public AdvertisingAllResponseDto findAllByUserId(Long userId) {
+
         List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAllByAuthorId(userId).stream().map(advertisingMapper::toResponse).toList();
         return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
     }
 
     public AdvertisingWithAuthorDto getAdById(Long id) {
+
         Advertising ad = advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
         return advertisingMapper.toResponseWithAuthor(ad);
@@ -131,6 +136,7 @@ public class AdvertisingService {
     }
 
     public boolean isAnotherAuthor(Long adsId) {
+
         Advertising ad = advertisingRepository.findById(adsId)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adsId)));
         return !ad.getAuthor().getId().equals(securityHelper.getCurrentUserId());

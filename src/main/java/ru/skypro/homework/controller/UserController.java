@@ -59,7 +59,6 @@ public class UserController {
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
         if (securityHelper.getAuthorities().stream()
                 .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
                         auth.getAuthority().equals("ROLE_USER"))) {
@@ -67,7 +66,6 @@ public class UserController {
         }
 
         String username = securityHelper.getCurrentUsername();
-
         userService.passwordUpdate(
                 username,
                 request.currentPassword(),
@@ -94,6 +92,7 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<UserInfoResponseDto> getUsersInfo() {
+
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -121,7 +120,6 @@ public class UserController {
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
         return ResponseEntity.ok(userService.updateUser(securityHelper.getCurrentUsername(), request));
     }
 

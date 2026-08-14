@@ -32,12 +32,8 @@ public class CommentService {
         this.securityHelper = securityHelper;
     }
 
-    public CommentsAllResponseDto findAll() {
-        List<CommentOneResponseDto> commentListDto = commentRepository.findAll().stream().map(commentMapper::toResponse).toList();
-        return new CommentsAllResponseDto(commentListDto.size(), commentListDto);
-    }
-
     public CommentsAllResponseDto findByAdvertisingId(Long id) {
+
         List<CommentOneResponseDto> commentListDto = commentRepository.findAllByAdvertisingId(id).stream().map(commentMapper::toResponse).toList();
         advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
@@ -76,6 +72,7 @@ public class CommentService {
     }
 
     public boolean isAnotherAuthor(Long commentId, Long advertisingId) {
+
         Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
                 .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
         return !comment.getAuthor().getId().equals(securityHelper.getCurrentUserId());
