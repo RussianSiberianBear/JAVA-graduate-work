@@ -27,4 +27,7 @@ public class User {
     private Role role = Role.USER;
     @Column(length = 32)
     private String avatarFileId;
+
+    public User(long l, String mail, String password, String authorFirstName, String authorLastName, String s, Role role, String image) {
+    }
 }
