@@ -1,0 +1,174 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-tables
+      author: developer
+      changes:
+        # Таблица пользователей
+        - createTable:
+            tableName: "user"
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: first_name
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_name
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phone
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: avatar_file_id
+                  type: VARCHAR(32)
+
+        # Таблица объявлений
+        - createTable:
+            tableName: advertising
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: image_file_id
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: price
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+
+        # Таблица комментариев
+        - createTable:
+            tableName: advertising_comments
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: advertising_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+              - column:
+                  name: text
+                  type: TEXT
+
+        # Добавление внешних ключей
+        - addForeignKeyConstraint:
+            baseTableName: advertising
+            baseColumnNames: author_id
+            referencedTableName: "user"
+            referencedColumnNames: id
+            constraintName: fk_advertising_author
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: advertising_comments
+            baseColumnNames: advertising_id
+            referencedTableName: advertising
+            referencedColumnNames: id
+            constraintName: fk_comment_advertising
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: advertising_comments
+            baseColumnNames: author_id
+            referencedTableName: "user"
+            referencedColumnNames: id
+            constraintName: fk_comment_author
+            onDelete: CASCADE
+
+  # Индексы для улучшения производительности
+  - changeSet:
+      id: create-indexes
+      author: developer
+      changes:
+        - createIndex:
+            tableName: advertising
+            indexName: idx_advertising_author
+            columns:
+              - column:
+                  name: author_id
+
+        - createIndex:
+            tableName: advertising_comments
+            indexName: idx_comments_advertising
+            columns:
+              - column:
+                  name: advertising_id
+
+        - createIndex:
+            tableName: advertising_comments
+            indexName: idx_comments_author
+            columns:
+              - column:
+                  name: author_id
+
+        - createIndex:
+            tableName: "user"
+            indexName: idx_user_email
+            columns:
+              - column:
+                  name: email

@@ -3,11 +3,13 @@ package ru.skypro.homework.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.skypro.homework.exception.AdvertisingNotFoundException;
+import ru.skypro.homework.exception.CommentNotFoundException;
 import ru.skypro.homework.exception.InvalidPasswordException;
+import ru.skypro.homework.exception.UsernameNotFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +54,19 @@ public class ApiExceptionHandler {
         );
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST) // 400
+                .status(HttpStatus.BAD_REQUEST)
                 .body(errors);
+    }
+
+    @ExceptionHandler(AdvertisingNotFoundException.class)
+    public ResponseEntity<String> handleAdvertisingNotFoundException(AdvertisingNotFoundException ex) {
+        log.warn("API advertising not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<String> handleCommentNotFoundException(CommentNotFoundException ex) {
+        log.warn("API comment not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 }

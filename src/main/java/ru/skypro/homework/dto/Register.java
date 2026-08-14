@@ -1,11 +1,7 @@
 package ru.skypro.homework.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 @Schema(description = "Запрос на регистрацию нового пользователя")
 public record Register(
@@ -13,10 +9,12 @@ public record Register(
         @Schema(description = "Логин пользователя (используется как email)",
                 example = "john.doe@example.com",
                 required = true,
+                minLength = 4,
+                maxLength = 32,
                 pattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
         @NotBlank(message = "Логин пользователя не может быть пустым!")
         @Email(message = "Логин должен быть корректным email адресом")
-        @Size(max = 50, message = "Логин не может превышать 50 символов")
+        @Size(max = 32, message = "Логин не может превышать 32 символа")
         String username,
 
         @Schema(description = "Пароль пользователя. Должен содержать минимум 8 символов, " +
@@ -24,10 +22,10 @@ public record Register(
                 example = "SecurePass123!",
                 required = true,
                 minLength = 8,
-                maxLength = 64,
+                maxLength = 16,
                 pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
         @NotBlank(message = "Пароль не может быть пустым!")
-        @Size(min = 8, max = 64, message = "Пароль должен содержать от 8 до 64 символов")
+        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
         @Pattern(
                 regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
                 message = "Пароль должен содержать минимум 8 символов, " +
@@ -40,10 +38,10 @@ public record Register(
                 example = "John",
                 required = true,
                 minLength = 2,
-                maxLength = 30,
+                maxLength = 16,
                 pattern = "^[A-Za-zА-Яа-я\\s-]+$")
         @NotBlank(message = "Имя пользователя не может быть пустым!")
-        @Size(min = 2, max = 30, message = "Имя должно содержать от 2 до 30 символов")
+        @Size(min = 2, max = 16, message = "Имя должно содержать от 2 до 16 символов")
         @Pattern(regexp = "^[A-Za-zА-Яа-я\\s-]+$",
                 message = "Имя может содержать только буквы, пробелы и дефисы")
         String firstName,
@@ -52,10 +50,10 @@ public record Register(
                 example = "Doe",
                 required = true,
                 minLength = 2,
-                maxLength = 30,
+                maxLength = 16,
                 pattern = "^[A-Za-zА-Яа-я\\s-]+$")
         @NotBlank(message = "Фамилия пользователя не может быть пустой!")
-        @Size(min = 2, max = 30, message = "Фамилия должна содержать от 2 до 30 символов")
+        @Size(min = 2, max = 16, message = "Фамилия должна содержать от 2 до 16 символов")
         @Pattern(regexp = "^[A-Za-zА-Яа-я\\s-]+$",
                 message = "Фамилия может содержать только буквы, пробелы и дефисы")
         String lastName,
@@ -72,7 +70,7 @@ public record Register(
         @Schema(description = "Роль пользователя в системе",
                 example = "USER",
                 required = true,
-                allowableValues = {"USER", "ADMIN", "MODERATOR"})
+                allowableValues = {"USER", "ADMIN"})
         @NotNull(message = "Роль пользователя не может быть пустым значением!")
         Role role
 

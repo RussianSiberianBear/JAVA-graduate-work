@@ -10,21 +10,22 @@ public record SetPasswordRequestDto(
         @Schema(description = "Текущий пароль пользователя",
                 example = "oldPassword123",
                 required = true,
-                minLength = 6,
-                maxLength = 32,
+                minLength = 8,
+                maxLength = 16,
                 pattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$")
         @NotBlank(message = "Текущий пароль не может быть пустым")
-        @Size(min = 6, max = 32, message = "Пароль должен содержать от 6 до 32 символов")
+        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
         String currentPassword,
 
         @Schema(description = "Новый пароль пользователя",
                 example = "newPassword456",
                 required = true,
-                minLength = 6,
-                maxLength = 32,
+                minLength = 8,
+                maxLength = 16,
                 pattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$")
         @NotBlank(message = "Новый пароль не может быть пустым")
-        @Size(min = 6, max = 32, message = "Пароль должен содержать от 6 до 32 символов")
+        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
         String newPassword
 
-) {}
+) {
+}

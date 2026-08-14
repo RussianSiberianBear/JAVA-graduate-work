@@ -10,56 +10,30 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.dto.SetPasswordRequestDto;
-import ru.skypro.homework.dto.SetPasswordResponseDto;
+import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
+import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.UserService;
 
 import java.io.IOException;
 
 @Slf4j
-@CrossOrigin(value = "http://localhost:3000")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;
-
-    /**
-     * Получение данных пользователя
-     *
-     * @param authentication - интерфейс аутентификации
-     * @return Статус 401 при неавторизованном пользователе или
-     * 200 статус и данные авторизованного пользователя
-     */
-
-    @GetMapping("/me")
-    @Operation(
-            summary = "Информация о пользователе",
-            description = "Получение информации об авторизованном пользователе"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Информация о пользователе получена"),
-            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
-    })
-    public ResponseEntity<?> getUsersInfo(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        String username = authentication.getName();
-        return ResponseEntity.ok(userService.getUserInfo(username));
-    }
+    private final SecurityHelper securityHelper;
 
     /**
      * Обновление паролья пользователя
      *
-     * @param request        DTO для обновления паролья
-     * @param authentication Инфориация об аутентификации пользователя
+     * @param request DTO для обновления паролья
      * @return 200 статус при успешном обновлении пароля,
      * 400 статус при некорректных данных пароля
      * 401 статус если пользователь не авторизован
@@ -80,35 +54,55 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
 
-    public ResponseEntity<?> password_update(@RequestBody @Valid SetPasswordRequestDto request,
-                                             Authentication authentication) {
+    public ResponseEntity<String> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        if (!authentication.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
+        if (securityHelper.getAuthorities().stream()
+                .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
                         auth.getAuthority().equals("ROLE_USER"))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        String username = authentication.getName();
-
-        SetPasswordResponseDto response = userService.passwordUpdate(
+        String username = securityHelper.getCurrentUsername();
+        userService.passwordUpdate(
                 username,
                 request.currentPassword(),
                 request.newPassword()
         );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Получение данных об авторизованном пользователе
+     *
+     * @return Статус 401 при неавторизованном пользователе или
+     * 200 статус и данные авторизованного пользователя
+     */
+
+    @GetMapping("/me")
+    @Operation(
+            summary = "Информация о пользователе",
+            description = "Получение информации об авторизованном пользователе"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Информация о пользователе получена"),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+    })
+    public ResponseEntity<UserInfoResponseDto> getUsersInfo() {
+
+        if (!securityHelper.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userService.getUserInfo(securityHelper.getCurrentUsername()));
     }
 
     /**
      * Обновление информации авторизованного пользователя
      *
-     * @param authentication - интерфейс аутентификации
-     * @param request        - DTO обновляеммых данных пользователя
+     * @param request - DTO обновляеммых данных пользователя
      * @return Статус 401 при неавторизованном пользователе или
      * 200 статус и обновленные данные авторизованного пользователя
      */
@@ -121,21 +115,20 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Обновленные данные пользователя"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    public ResponseEntity<?> updateUsersInfo(@RequestBody @Valid UserUpdateInfoDto request, Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+    public ResponseEntity<UserUpdateInfoDto> updateUsersInfo(@RequestBody @Valid UserUpdateInfoDto request) {
+
+        if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        String username = authentication.getName();
-        return ResponseEntity.ok(userService.updateUser(username, request));
+        return ResponseEntity.ok(userService.updateUser(securityHelper.getCurrentUsername(), request));
     }
 
     /**
      * Метод сохраняет или обновляет аватар пользователя
-     * @param file - аватар пользователя
-     * @param authentication - объект аутентифицированного пользователя
+     *
+     * @param image - аватар пользователя
      * @return Статус 200 при успешном обновлении или
-     *         статус 401 если пользователь не авторизован
+     * статус 401 если пользователь не авторизован
      */
     @PatchMapping("/me/image")
     @Operation(
@@ -146,15 +139,17 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Аватар пользователе сохранен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
+    public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) {
 
-    public ResponseEntity<?> updateUsersAvatar(@RequestParam("file") @Valid MultipartFile file, Authentication authentication) throws IOException {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        String username = authentication.getName();
-        userService.updateUsersAvatar(username, file);
-        return ResponseEntity.ok().build();
+        try {
+            userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
+            return ResponseEntity.ok().build();
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
 }

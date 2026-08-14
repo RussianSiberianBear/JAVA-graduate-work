@@ -1,0 +1,4 @@
+databaseChangeLog:
+  - include:
+      file: versions/v1-create-tables.yaml
+      relativeToChangelogFile: true

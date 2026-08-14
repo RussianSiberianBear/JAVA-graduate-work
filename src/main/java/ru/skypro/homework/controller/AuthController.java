@@ -22,6 +22,13 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Метод аутентификации пользователя
+     *
+     * @param login DTO пользователя (логин и пароль)
+     * @return 200 статус при успешной аутентификации
+     * 401 статус при неуспешной аутентификации
+     */
     @PostMapping("/login")
     @Operation(
             summary = "Аутентификация пользователя",
@@ -32,7 +39,8 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Неверные данные запроса"),
             @ApiResponse(responseCode = "401", description = "Неверный логин или пароль")
     })
-    public ResponseEntity<?> login(@Valid @RequestBody Login login) {
+    public ResponseEntity<String> login(@Valid @RequestBody Login login) {
+
         if (authService.login(login.username(), login.password())) {
             return ResponseEntity.ok().build();
         } else {
@@ -40,6 +48,13 @@ public class AuthController {
         }
     }
 
+    /**
+     * Регистрация нового пользователя
+     *
+     * @param register DTO с данными пользователя
+     * @return Статус 201 при успешной регистрации
+     * 400 при неуспешной регистрации
+     */
     @PostMapping("/register")
     @Operation(
             summary = "Регистрация нового пользователя",
@@ -49,7 +64,8 @@ public class AuthController {
             @ApiResponse(responseCode = "201", description = "Пользователь успешно зарегистрирован"),
             @ApiResponse(responseCode = "400", description = "Неверные данные запроса или пользователь уже существует")
     })
-    public ResponseEntity<?> register(@Valid @RequestBody Register register) {
+    public ResponseEntity<String> register(@Valid @RequestBody Register register) {
+
         if (authService.register(register)) {
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } else {

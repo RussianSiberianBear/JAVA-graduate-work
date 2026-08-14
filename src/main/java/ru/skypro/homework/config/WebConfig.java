@@ -11,7 +11,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // Для всех эндпоинтов
                 .allowedOrigins("http://localhost:3000") // Разрешенные домены
-                .allowedMethods("GET", "POST", "PUT", "DELETE") // Разрешенные методы
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS") // Разрешенные методы
                 .allowedHeaders("*") // Разрешенные заголовки
                 .allowCredentials(true); // Разрешить куки
     }
