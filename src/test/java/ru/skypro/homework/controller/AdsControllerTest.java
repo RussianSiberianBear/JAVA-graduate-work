@@ -76,7 +76,7 @@ public class AdsControllerTest {
     }
 
     @Test
-    void deleteAdsById_Test_Success()  throws Exception {
+    void deleteAdsById_Success_Test()  throws Exception {
 
         when(securityHelper.isAuthenticated()).thenReturn(true);
         when(securityHelper.isAdmin()).thenReturn(true);
@@ -89,7 +89,7 @@ public class AdsControllerTest {
     }
 
     @Test
-    void deleteAdsById_Test_Forbidden()  throws Exception {
+    void deleteAdsById_Forbidden_Test()  throws Exception {
 
         when(securityHelper.isAuthenticated()).thenReturn(true);
         when(securityHelper.isAdmin()).thenReturn(false);
