@@ -164,7 +164,7 @@ public class AdsController {
      */
     @Operation(
             summary = "Получить все объявление авторизованного пользователя",
-            description = "Получить все объявление авторизованного пользователя и их количство"
+            description = "Получить все объявление авторизованного пользователя и их количество"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Объяления и их количество получено"),
