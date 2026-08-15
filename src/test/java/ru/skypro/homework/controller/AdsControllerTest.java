@@ -426,6 +426,7 @@ public class AdsControllerTest {
                 .andExpect(jsonPath("$.count").value(1))
                 .andExpect(jsonPath("$.results[0].title").value("My Ad"));
     }
+
     @Test
     void getAdsAuthorisedUser_Unauthorized_Test() throws Exception {
         when(securityHelper.isAuthenticated()).thenReturn(false);
