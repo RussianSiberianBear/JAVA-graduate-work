@@ -1,11 +1,15 @@
 package ru.skypro.homework.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import ru.skypro.homework.dto.Role;
 
 @Data
 @Entity
+@NoArgsConstructor  // Конструктор без параметров
+@AllArgsConstructor // Конструктор со всеми параметрами (опционально)
 @Table(name = "\"user\"")
 public class User {
 
@@ -27,7 +31,4 @@ public class User {
     private Role role = Role.USER;
     @Column(length = 32)
     private String avatarFileId;
-
-    public User(long l, String mail, String password, String authorFirstName, String authorLastName, String s, Role role, String image) {
-    }
 }
