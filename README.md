@@ -1,39 +1,42 @@
-# Дипломная работа по курсу "JAVA-разработчик"
+# Дипломная работа по курсу «JAVA-разработчик»
 
-Сервис для управления объявлениями, пользователями и комментариями с хранением файлов в Alfresco.
+**Сервис для управления объявлениями, пользователями и комментариями с хранением файлов в Alfresco.**
+
+---
 
 ## Стек технологий
 
-- **Java 21**, Spring Boot 4.1.0
+- **Java 21**, **Spring Boot 4.1.0**
 - **PostgreSQL 16** — основная база данных
 - **Liquibase** — миграции схемы базы данных
 - **Spring Data JPA** — работа с PostgreSQL
 - **Spring Security (Basic Auth)** — авторизация и аутентификация
 - **Swagger/OpenAPI (SpringDoc 2.8.5)** — документация API
-- **MapStruct** — маппинг DTO/сущностей
-- **Lombok** — генерация бойлерплейта
-- **Alfresco Community 23.x** — файловое хранилище (аватарки и картинки объявлений)
+- **MapStruct** — маппинг DTO и сущностей
+- **Lombok** — генерация шаблонного кода
+- **Alfresco Community 23.x** — файловое хранилище (аватарки и изображения объявлений)
 - **RestClient** — взаимодействие с Alfresco API
+
+---
 
 ## Архитектура
 
 Приложение построено по классической трёхуровневой архитектуре:
 
-```
+```text
 controller → service → repository (JPA → PostgreSQL)
               ↓
-              filestorage (Alfresco)
+          filestorage (Alfresco)
 ```
-
 
 ### Функциональные модули
 
-| Модуль                 | Описание                                                                                    |
-|------------------------|---------------------------------------------------------------------------------------------|
-| **Пользователи**       | Регистрация, авторизация, получение/обновление информации, смена пароля, обновление аватара |
-| **Объявления**         | CRUD объявлений, получение всех/своих объявлений, обновление картинки                       |
-| **Комментарии**        | CRUD комментариев к объявлениям                                                             |
-| **Файловое хранилище** | Загрузка/замена/удаление файлов в Alfresco                                                  |
+| Модуль | Описание |
+|---|---|
+| **Пользователи** | Регистрация, авторизация, получение и обновление информации, смена пароля, обновление аватара |
+| **Объявления** | CRUD объявлений, получение всех и своих объявлений, обновление изображения |
+| **Комментарии** | CRUD комментариев к объявлениям |
+| **Файловое хранилище** | Загрузка, замена и удаление файлов в Alfresco |
 
 ---
 
@@ -41,35 +44,35 @@ controller → service → repository (JPA → PostgreSQL)
 
 ### Пользователи
 
-| Метод | Путь | Описание | Авторизация  |
-|-------|------|----------|--------------|
-| POST | `/login` | Авторизация пользователя | ❌ Нет       |
-| POST | `/register` | Регистрация пользователя | ❌ Нет       |
-| POST | `/users/set_password` | Изменение пароля | ✅ Да        |
-| GET | `/users/me` | Получение информации о пользователе | ✅ Да        |
-| PATCH | `/users/me` | Обновление информации о пользователе | ✅ Да        |
-| PATCH | `/users/me/image` | Обновление аватара | ✅ Да        |
+| Метод | Путь | Описание | Авторизация |
+|---|---|---|---|
+| `POST` | `/login` | Авторизация пользователя | ❌ Нет |
+| `POST` | `/register` | Регистрация пользователя | ❌ Нет |
+| `POST` | `/users/set_password` | Изменение пароля | ✅ Да |
+| `GET` | `/users/me` | Получение информации о пользователе | ✅ Да |
+| `PATCH` | `/users/me` | Обновление информации о пользователе | ✅ Да |
+| `PATCH` | `/users/me/image` | Обновление аватара | ✅ Да |
 
 ### Рекламные объявления
 
 | Метод | Путь | Описание | Авторизация |
-|-------|------|----------|-------------|
-| GET | `/ads` | Получение всех объявлений | ❌ Нет |
-| POST | `/ads` | Добавление объявления | ✅ Да |
-| GET | `/ads/{id}` | Получение информации об объявлении | ✅ Да |
-| DELETE | `/ads/{id}` | Удаление объявления | ✅ Да |
-| PATCH | `/ads/{id}` | Обновление информации об объявлении | ✅ Да |
-| GET | `/ads/me` | Получение объявлений пользователя | ✅ Да |
-| PATCH | `/ads/{id}/image` | Обновление картинки объявления | ✅ Да |
+|---|---|---|---|
+| `GET` | `/ads` | Получение всех объявлений | ❌ Нет |
+| `POST` | `/ads` | Добавление объявления | ✅ Да |
+| `GET` | `/ads/{id}` | Получение информации об объявлении | ✅ Да |
+| `DELETE` | `/ads/{id}` | Удаление объявления | ✅ Да |
+| `PATCH` | `/ads/{id}` | Обновление информации об объявлении | ✅ Да |
+| `GET` | `/ads/me` | Получение объявлений пользователя | ✅ Да |
+| `PATCH` | `/ads/{id}/image` | Обновление изображения объявления | ✅ Да |
 
 ### Комментарии
 
 | Метод | Путь | Описание | Авторизация |
-|-------|------|----------|-------------|
-| GET | `/ads/{id}/comments` | Получение комментариев объявления | ✅ Да |
-| POST | `/ads/{id}/comments` | Добавление комментария | ✅ Да |
-| DELETE | `/ads/{adId}/comments/{commentId}` | Удаление комментария | ✅ Да |
-| PATCH | `/ads/{adId}/comments/{commentId}` | Обновление комментария | ✅ Да |
+|---|---|---|---|
+| `GET` | `/ads/{id}/comments` | Получение комментариев объявления | ✅ Да |
+| `POST` | `/ads/{id}/comments` | Добавление комментария | ✅ Да |
+| `DELETE` | `/ads/{adId}/comments/{commentId}` | Удаление комментария | ✅ Да |
+| `PATCH` | `/ads/{adId}/comments/{commentId}` | Обновление комментария | ✅ Да |
 
 ---
 
@@ -78,15 +81,15 @@ controller → service → repository (JPA → PostgreSQL)
 ### Требования
 
 - **JDK 21**
-- **PostgreSQL 16** (локально или в Docker)
-- **Alfresco Community** (на порту 9090)
-- **Maven** (или использовать встроенный ./mvnw)
+- **PostgreSQL 16** — локально или в Docker
+- **Alfresco Community 23.x** — на порту `9090`
+- **Maven** или встроенный Maven Wrapper (`./mvnw`)
 
 ---
 
 ### 1. Запуск PostgreSQL
 
-#### Вариант А: Через Docker (рекомендуется)
+#### Вариант А: через Docker (рекомендуется)
 
 ```bash
 docker run -d \
@@ -98,128 +101,169 @@ docker run -d \
   postgres:16
 ```
 
-#### Вариант Б: Локальная установка PostgreSQL
+#### Вариант Б: локальная установка PostgreSQL
 
-    Установите PostgreSQL 16
-    Создайте базу данных:
+Установите PostgreSQL 16 и создайте базу данных и пользователя:
+
+```sql
 CREATE DATABASE java_graduate_work;
 CREATE USER java_user WITH PASSWORD 'java';
 GRANT ALL PRIVILEGES ON DATABASE java_graduate_work TO java_user;
+```
+
+---
 
 ### 2. Запуск Alfresco Community
 
-Alfresco должен быть запущен на порту 9090.
+Alfresco должен быть доступен на порту `9090`.
 
-#### Вариант А: Через Docker Compose (рекомендуется)
+#### Вариант А: через Docker Compose (рекомендуется)
 
-Создайте docker-compose-alfresco.yml:
-````
-version: '3'
+Создайте файл `docker-compose-alfresco.yml`:
+
+```yaml
 services:
-alfresco:
-image: alfresco/alfresco-content-repository-community:23.1.0
-ports:
-- "9090:8080"
-environment:
-- JAVA_OPTS=-Xms512m -Xmx1024m
-volumes:
-- alfresco_data:/usr/local/tomcat/alf_data
-volumes:
-alfresco_data:
-````
+  alfresco:
+    image: alfresco/alfresco-content-repository-community:23.1.0
+    ports:
+      - "9090:8080"
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+    volumes:
+      - alfresco_data:/usr/local/tomcat/alf_data
 
-  Запустите:
-```bash
-  docker-compose -f docker-compose-alfresco.yml up -d
+volumes:
+  alfresco_data:
 ```
 
-#### Вариант Б: Скачать и запустить Alfresco вручную
+Запустите Alfresco:
 
-Скачайте Alfresco Community с официального сайта
-Распакуйте и запустите:
+```bash
+docker-compose -f docker-compose-alfresco.yml up -d
+```
+
+#### Вариант Б: скачать и запустить Alfresco вручную
+
+Скачайте Alfresco Community с официального сайта, распакуйте архив и запустите приложение:
+
 ```bash
 cd alfresco-community
 ./alfresco.sh start
 ```
 
-Подготовка папки в Alfresco
+#### Подготовка папки в Alfresco
+
 После запуска Alfresco:
+
+1. Откройте `http://localhost:9090/share`.
+2. Войдите с учётными данными `admin / admin`.
+3. Перейдите в **Репозиторий (Repository)**.
+4. Создайте папку `storage` (или используйте другое название).
+5. Скопируйте UUID созданной папки.
+6. Укажите UUID в `application.properties`:
+
+```properties
+alfresco.folder-id=ваш-id-папки
 ```
-    Откройте: http://localhost:9090/share
 
-    Войдите: admin / admin
+---
 
-    Перейдите в Репозиторий (Repository)
+### 3. Настройка приложения
 
-    Создайте папку storage (или любое другое название)
+Перед запуском приложения проверьте настройки подключения к PostgreSQL и Alfresco в файле:
 
-    Скопируйте ID папки (UUID) в application.properties:
-
-        alfresco.folder-id=ваш-id-папки
+```text
+src/main/resources/application.properties
 ```
+
+Убедитесь, что указаны корректные параметры подключения к базе данных и UUID папки в Alfresco.
+
+---
+
 ### 4. Сборка и запуск приложения
 
-Через Maven Wrapper (рекомендуется):
-### Сборка
+#### Через Maven Wrapper (рекомендуется)
+
+Сборка:
+
+```bash
 ./mvnw clean compile
+```
 
-### Запуск
+Запуск:
+
+```bash
 ./mvnw spring-boot:run
+```
 
-Через IDEA:
+#### Через IntelliJ IDEA
 
-    Откройте проект в IntelliJ IDEA
-    Запустите HomeworkApplication.java
+1. Откройте проект в IntelliJ IDEA.
+2. Найдите `HomeworkApplication.java`.
+3. Запустите приложение.
 
+---
 
 ### 5. Проверка работы
-   Сервис	URL	Логин/Пароль
-   Приложение	http://localhost:8080	-
-   Swagger UI	http://localhost:8080/swagger-ui.html	-
-   Alfresco Share	http://localhost:9090/share	admin / admin
 
+| Сервис | URL | Логин / пароль |
+|---|---|---|
+| Приложение | `http://localhost:8080` | — |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` | — |
+| Alfresco Share | `http://localhost:9090/share` | `admin / admin` |
+
+---
 
 ### 6. Тестирование через Swagger
-    Откройте Swagger UI: http://localhost:8080/swagger-ui.html
-    Нажмите кнопку "Authorize" (🔒)
-    Введите логин и пароль (например, admin / admin)
-    Выполняйте запросы к защищенным эндпоинтам
+
+1. Откройте Swagger UI: `http://localhost:8080/swagger-ui.html`.
+2. Нажмите кнопку **Authorize** (🔒).
+3. Введите логин и пароль, например `admin / admin`.
+4. Выполняйте запросы к защищённым эндпоинтам.
+
+---
 
 ### 7. База данных
+
 Liquibase автоматически применяет миграции при запуске приложения.
 
-  Файлы миграций:
+#### Файлы миграций
 
+```text
 src/main/resources/db/changelog/
-  ├── db.changelog-master.yaml          # Главный файл
-  └── versions/
-  ├── v1-create-tables.yaml          # Создание таблиц
-  └── v2-alter-file-id-length.yaml   # Увеличение длины полей ID
+├── db.changelog-master.yaml          # Главный файл
+└── versions/
+    ├── v1-create-tables.yaml         # Создание таблиц
+    └── v2-alter-file-id-length.yaml  # Увеличение длины полей ID
+```
 
-Схема базы данных
+#### Схема базы данных
 
-Таблицы:
+Основные таблицы:
 
-    user — пользователи (email, пароль, имя, фамилия, телефон, роль, аватар)
-    advertising — объявления (автор, цена, заголовок, описание, картинка)
-    advertising_comments — комментарии к объявлениям (автор, текст, дата)
+- `user` — пользователи (email, пароль, имя, фамилия, телефон, роль, аватар)
+- `advertising` — объявления (автор, цена, заголовок, описание, изображение)
+- `advertising_comments` — комментарии к объявлениям (автор, текст, дата)
+
+---
 
 ### 8. Структура проекта
-````
+
+```text
 src/main/java/ru/skypro/homework/
 ├── config/                    # Конфигурации
 │   ├── WebSecurityConfig      # Spring Security
 │   ├── SwaggerConfig          # Swagger/OpenAPI
 │   └── AlfrescoProperties     # Настройки Alfresco
-├── controller/                # REST контроллеры
+├── controller/                # REST-контроллеры
 │   ├── UserController
 │   ├── AdsController
 │   └── AuthController
 ├── dto/                       # DTO для API
 ├── exception/                 # Обработка ошибок
-├── mapper/                    # MapStruct мапперы
-├── model/                     # JPA сущности
-├── repository/                # Spring Data JPA репозитории
+├── mapper/                    # MapStruct-мапперы
+├── model/                     # JPA-сущности
+├── repository/                # Spring Data JPA-репозитории
 ├── security/                  # Spring Security
 │   └── SecurityHelper         # Вспомогательные методы
 ├── service/                   # Бизнес-логика
@@ -230,69 +274,90 @@ src/main/java/ru/skypro/homework/
 │       ├── FileStorageService # Интерфейс
 │       └── alfresco/          # Реализация на Alfresco
 └── HomeworkApplication.java   # Точка входа
-````
+```
+
+---
 
 ### 9. Возможные проблемы и решения
-#### 9.1 Alfresco не запускается
 
-Проверьте, что порт 9090 свободен:
+#### 9.1. Alfresco не запускается
+
+Проверьте, что порт `9090` свободен:
+
+```cmd
 netstat -ano | findstr :9090
+```
 
-#### 9.2 Ошибка подключения к PostgreSQL
+#### 9.2. Ошибка подключения к PostgreSQL
 
-Убедитесь, что PostgreSQL запущен и доступен по адресу localhost:5432.
+Убедитесь, что PostgreSQL запущен и доступен по адресу:
 
-#### 9.3 Swagger не открывается
+```text
+localhost:5432
+```
 
-Проверьте настройки в application.properties:
+Также проверьте имя базы данных, пользователя и пароль в `application.properties`.
 
+#### 9.3. Swagger не открывается
+
+Проверьте настройки в `application.properties`:
+
+```properties
 springdoc.api-docs.enabled=true
 springdoc.swagger-ui.enabled=true
+```
 
-#### 9.4 401 Unauthorized в Swagger
+#### 9.4. Ошибка `401 Unauthorized` в Swagger
 
-    Нажмите кнопку Authorize (🔒)
-    Введите логин и пароль
-    Нажмите Authorize
+1. Нажмите кнопку **Authorize** (🔒).
+2. Введите логин и пароль.
+3. Нажмите **Authorize**.
 
-## Docker Compose (запуск всего проекта)
+---
 
-### Если хотите запустить всё в Docker:
-````
-docker-compose.yml
+## Docker Compose
 
-version: '3'
+### Запуск PostgreSQL и Alfresco
+
+Для запуска инфраструктуры проекта в Docker Compose создайте файл `docker-compose.yml`:
+
+```yaml
 services:
-postgres:
-image: postgres:16
-environment:
-POSTGRES_DB: java_graduate_work
-POSTGRES_USER: java_user
-POSTGRES_PASSWORD: java
-ports:
-- "5432:5432"
-volumes:
-- postgres_data:/var/lib/postgresql/data
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: java_graduate_work
+      POSTGRES_USER: java_user
+      POSTGRES_PASSWORD: java
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-alfresco:
-image: alfresco/alfresco-content-repository-community:23.1.0
-ports:
-- "9090:8080"
-environment:
-- JAVA_OPTS=-Xms512m -Xmx1024m
-volumes:
-- alfresco_data:/usr/local/tomcat/alf_data
+  alfresco:
+    image: alfresco/alfresco-content-repository-community:23.1.0
+    ports:
+      - "9090:8080"
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+    volumes:
+      - alfresco_data:/usr/local/tomcat/alf_data
 
 volumes:
-postgres_data:
-alfresco_data:
-````
+  postgres_data:
+  alfresco_data:
+```
+
 Запуск:
-````bash
+
+```bash
 docker-compose up -d
-````
+```
+
+---
+
 ## Разработчик
 
-    Студент: А.Батурин
-    Курс: JAVA-разработчик
-    Год: 2026
+**Студент:** Алекандр Батурин  
+**Курс:** JAVA-разработчик  
+**Год:** 2026
