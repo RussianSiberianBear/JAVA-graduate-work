@@ -20,7 +20,7 @@ public class Advertising {
     @JsonIgnore
     private User author;
 
-    @Column(nullable = false, unique = true, length = 32)
+    @Column(nullable = false, unique = true, length = 255)
     private String imageFileId;
 
     @Column(nullable = false)

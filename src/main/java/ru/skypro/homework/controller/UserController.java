@@ -31,7 +31,7 @@ public class UserController {
     private final SecurityHelper securityHelper;
 
     /**
-     * Обновление паролья пользователя
+     * Обновление пароля пользователя
      *
      * @param request DTO для обновления паролья
      * @return 200 статус при успешном обновлении пароля,

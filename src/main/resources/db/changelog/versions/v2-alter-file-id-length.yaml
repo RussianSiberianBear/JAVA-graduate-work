@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-alter-file-id-length
+      author: alex
+      changes:
+        - modifyDataType:
+            tableName: "user"
+            columnName: avatar_file_id
+            newDataType: VARCHAR(255)
+        - modifyDataType:
+            tableName: "advertising"
+            columnName: image_file_id
+            newDataType: VARCHAR(255)
