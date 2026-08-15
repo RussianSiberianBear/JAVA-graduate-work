@@ -1,4 +1,5 @@
 databaseChangeLog:
   - include:
-      file: versions/v1-create-tables.yaml
-      relativeToChangelogFile: true
+      file: db/changelog/versions/v1-create-tables.yaml
+  - include:
+      file: db/changelog/versions/v2-alter-file-id-length.yaml

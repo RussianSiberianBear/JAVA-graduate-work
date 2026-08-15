@@ -29,6 +29,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Role role = Role.USER;
-    @Column(length = 32)
+    @Column(length = 255)
     private String avatarFileId;
 }

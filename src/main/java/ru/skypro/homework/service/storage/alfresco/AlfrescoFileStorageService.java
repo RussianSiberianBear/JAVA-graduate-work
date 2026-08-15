@@ -1,6 +1,6 @@
 package ru.skypro.homework.service.storage.alfresco;
 
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
@@ -12,11 +12,12 @@ import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFile;
 import ru.skypro.homework.service.storage.StoredFileInfo;
 
+import java.io.IOException;
+
 @Service
 public class AlfrescoFileStorageService implements FileStorageService {
 
-    private static final String API =
-            "/api/-default-/public/alfresco/versions/1/nodes";
+    private static final String API = "/api/-default-/public/alfresco/versions/1/nodes";
 
     private final RestClient client;
     private final AlfrescoProperties properties;
@@ -28,36 +29,56 @@ public class AlfrescoFileStorageService implements FileStorageService {
 
     @Override
     public StoredFileInfo upload(FileUploadRequest request) {
+        try {
+            MultipartBodyBuilder body = new MultipartBodyBuilder();
 
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
+            // Читаем InputStream в byte[]
+            byte[] contentBytes = request.content().readAllBytes();
 
-        body.part(
-                "filedata",
-                new InputStreamResource(request.content()) {
-                    @Override
-                    public String getFilename() {
-                        return request.fileName();
+            body.part(
+                    "filedata",
+                    new ByteArrayResource(contentBytes) {
+                        @Override
+                        public String getFilename() {
+                            return request.fileName();
+                        }
                     }
-                }
-        ).contentType(MediaType.parseMediaType(
-                request.contentType()
-        ));
+            ).contentType(MediaType.parseMediaType(request.contentType()));
 
-        body.part("name", request.fileName());
-        body.part("nodeType", "cm:content");
-        body.part("autoRename", "true");
+            body.part("name", request.fileName());
+            body.part("nodeType", "cm:content");
+            body.part("autoRename", "true");
 
-        AlfrescoResponse response = client.post()
-                .uri(
-                        API + "/{folderId}/children",
-                        properties.folderId()
-                )
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(body.build())
-                .retrieve()
-                .body(AlfrescoResponse.class);
+            AlfrescoResponse response = client.post()
+                    .uri(API + "/{folderId}/children", properties.folderId())
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body.build())
+                    .retrieve()
+                    .body(AlfrescoResponse.class);
 
-        return toInfo(response.entry());
+            return toInfo(response.entry());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file content for upload: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public StoredFileInfo replace(String fileId, FileUploadRequest request) {
+        try {
+            // Читаем InputStream в byte[]
+            byte[] contentBytes = request.content().readAllBytes();
+
+            client.put()
+                    .uri(API + "/{id}/content", fileId)
+                    .contentType(MediaType.parseMediaType(request.contentType()))
+                    .body(new ByteArrayResource(contentBytes))
+                    .retrieve()
+                    .toBodilessEntity();
+
+            return getInfo(fileId);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file content for replace: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -82,23 +103,6 @@ public class AlfrescoFileStorageService implements FileStorageService {
                 .body(byte[].class);
 
         return new StoredFile(info, content);
-    }
-
-    @Override
-    public StoredFileInfo replace(
-            String fileId,
-            FileUploadRequest request
-    ) {
-        client.put()
-                .uri(API + "/{id}/content", fileId)
-                .contentType(MediaType.parseMediaType(
-                        request.contentType()
-                ))
-                .body(new InputStreamResource(request.content()))
-                .retrieve()
-                .toBodilessEntity();
-
-        return getInfo(fileId);
     }
 
     @Override
