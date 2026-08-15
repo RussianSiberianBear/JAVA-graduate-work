@@ -11,11 +11,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.skypro.homework.constants.ExceptionMessages;
-import ru.skypro.homework.dto.AdvertisingAllResponseDto;
-import ru.skypro.homework.dto.AdvertisingOneResponseDto;
-import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
-import ru.skypro.homework.dto.CreateOrUpdateAd;
+import ru.skypro.homework.dto.*;
 import ru.skypro.homework.exception.AdvertisingNotFoundException;
+import ru.skypro.homework.model.User;
 import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.AdvertisingService;
 import ru.skypro.homework.service.CommentService;
@@ -434,5 +432,321 @@ public class AdsControllerTest {
 
         mockMvc.perform(get("/ads/me"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ===== ТЕСТЫ ДЛЯ КОММЕНТАРИЕВ =====
+
+    @Test
+    void getAllCommentsByAdsId_Success_Test() throws Exception {
+        Long adId = 1L;
+        CommentsAllResponseDto expected = new CommentsAllResponseDto(
+                2,
+                List.of(
+                        new CommentOneResponseDto(1L, 1L, "user1@mail.com", "Great ad!", 1234567890L, "Great ad!"),
+                        new CommentOneResponseDto(2L, 2L, "user2@mail.com", "Nice product!", 1234567891L, "Nice product!")
+                )
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(commentService.findByAdvertisingId(adId)).thenReturn(expected);
+
+        mockMvc.perform(get("/ads/{id}/comments", adId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.results[0].pk").value(1L))
+                .andExpect(jsonPath("$.results[0].text").value("Great ad!"))
+                .andExpect(jsonPath("$.results[1].pk").value(2L))
+                .andExpect(jsonPath("$.results[1].text").value("Nice product!"));
+    }
+
+    @Test
+    void getAllCommentsByAdsId_Unauthorized_Test() throws Exception {
+        Long adId = 1L;
+
+        when(securityHelper.isAuthenticated()).thenReturn(false);
+
+        mockMvc.perform(get("/ads/{id}/comments", adId))
+                .andExpect(status().isUnauthorized());
+
+        verify(commentService, never()).findByAdvertisingId(anyLong());
+    }
+
+    @Test
+    void getAllCommentsByAdsId_AdNotFound_Test() throws Exception {
+        Long adId = 999L;
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(commentService.findByAdvertisingId(adId))
+                .thenThrow(new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adId)));
+
+        mockMvc.perform(get("/ads/{id}/comments", adId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void addCommentToAdvertisingId_Success_Test() throws Exception {
+        Long adId = 1L;
+        String text = "Комментарий";
+        CommentRequestDto commentRequest = new CommentRequestDto(text);
+        String commentJson = objectMapper.writeValueAsString(commentRequest);
+
+        MockMultipartFile commentPart = new MockMultipartFile(
+                "text",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                commentJson.getBytes()
+        );
+
+        CommentOneResponseDto expected = new CommentOneResponseDto(
+                1L,
+                1L,
+                "user@mail.com",
+                text,
+                1234567890L,
+                "Комментарий"
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.getCurrentUser()).thenReturn(new User(1L, "user@mail.com", "password", "FirstName", "LastName", "+79991234567", Role.USER, "image.jpg"));
+        when(commentService.addCommentToAdvertisingId(any(), eq(adId), any(CommentRequestDto.class)))
+                .thenReturn(expected);
+
+        mockMvc.perform(multipart("/ads/{id}/comments", adId)
+                        .file(commentPart)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pk").value(1L))
+                .andExpect(jsonPath("$.text").value(text))
+                .andExpect(jsonPath("$.author").value(1L));
+    }
+
+    @Test
+    void addCommentToAdvertisingId_Unauthorized_Test() throws Exception {
+        Long adId = 1L;
+        String text = "This is a test comment";
+        CommentRequestDto commentRequest = new CommentRequestDto(text);
+        String commentJson = objectMapper.writeValueAsString(commentRequest);
+
+        MockMultipartFile commentPart = new MockMultipartFile(
+                "text",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                commentJson.getBytes()
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(false);
+
+        mockMvc.perform(multipart("/ads/{id}/comments", adId)
+                        .file(commentPart)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        }))
+                .andExpect(status().isUnauthorized());
+
+        verify(commentService, never()).addCommentToAdvertisingId(any(), anyLong(), any());
+    }
+
+    @Test
+    void deleteComment_Success_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.isAdmin()).thenReturn(true);
+        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(false);
+        doNothing().when(commentService).deleteCommentByIdAndAdvertisingById(commentId, adId);
+
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void deleteComment_Unauthorized_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+
+        when(securityHelper.isAuthenticated()).thenReturn(false);
+
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+                .andExpect(status().isUnauthorized());
+
+        verify(commentService, never()).deleteCommentByIdAndAdvertisingById(anyLong(), anyLong());
+    }
+
+    @Test
+    void deleteComment_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
+
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+                .andExpect(status().isForbidden());
+
+        verify(commentService, never()).deleteCommentByIdAndAdvertisingById(anyLong(), anyLong());
+    }
+
+    @Test
+    void deleteComment_Success_WhenAdminDeletesAnotherAuthor_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.isAdmin()).thenReturn(true);
+        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
+        doNothing().when(commentService).deleteCommentByIdAndAdvertisingById(commentId, adId);
+
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+                .andExpect(status().isOk());
+
+        verify(commentService, times(1)).deleteCommentByIdAndAdvertisingById(commentId, adId);
+    }
+
+    @Test
+    void updateComment_Success_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+        String newText = "Updated comment text";
+        String authorFirstname = "firstname";
+        CommentRequestDto commentRequest = new CommentRequestDto(newText);
+        String commentJson = objectMapper.writeValueAsString(commentRequest);
+
+        MockMultipartFile commentPart = new MockMultipartFile(
+                "text",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                commentJson.getBytes()
+        );
+
+        CommentOneResponseDto expected = new CommentOneResponseDto(
+                commentId,
+                1L,
+                "user@mail.com",
+                authorFirstname,
+                1234567890L,
+                newText
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(false);
+        when(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, commentRequest))
+                .thenReturn(expected);
+
+        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
+                        .file(commentPart)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pk").value(commentId))
+                .andExpect(jsonPath("$.text").value(newText));
+    }
+
+    @Test
+    void updateComment_Unauthorized_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+        String newText = "Updated comment text";
+        CommentRequestDto commentRequest = new CommentRequestDto(newText);
+        String commentJson = objectMapper.writeValueAsString(commentRequest);
+
+        MockMultipartFile commentPart = new MockMultipartFile(
+                "text",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                commentJson.getBytes()
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(false);
+
+        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
+                        .file(commentPart)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isUnauthorized());
+
+        verify(commentService, never()).updateCommentByIdAndAdvertisingById(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void updateComment_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+        String newText = "Updated comment text";
+        CommentRequestDto commentRequest = new CommentRequestDto(newText);
+        String commentJson = objectMapper.writeValueAsString(commentRequest);
+
+        MockMultipartFile commentPart = new MockMultipartFile(
+                "text",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                commentJson.getBytes()
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
+
+        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
+                        .file(commentPart)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+
+        verify(commentService, never()).updateCommentByIdAndAdvertisingById(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void updateComment_Success_WhenAdminUpdatesAnotherAuthor_Test() throws Exception {
+        Long adId = 1L;
+        Long commentId = 1L;
+        String newText = "Admin updated comment";
+        String authorFirstname = "firstname";
+        CommentRequestDto commentRequest = new CommentRequestDto(newText);
+        String commentJson = objectMapper.writeValueAsString(commentRequest);
+
+        MockMultipartFile commentPart = new MockMultipartFile(
+                "text",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                commentJson.getBytes()
+        );
+
+        CommentOneResponseDto expected = new CommentOneResponseDto(
+                commentId,
+                2L,
+                "other@mail.com",
+                authorFirstname,
+                1234567890L,
+                newText
+        );
+
+        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(securityHelper.isAdmin()).thenReturn(true);
+        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
+        when(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, commentRequest))
+                .thenReturn(expected);
+
+        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
+                        .file(commentPart)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pk").value(commentId))
+                .andExpect(jsonPath("$.text").value(newText));
     }
 }
