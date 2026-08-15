@@ -6,7 +6,6 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import ru.skypro.homework.config.AlfrescoProperties;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFile;

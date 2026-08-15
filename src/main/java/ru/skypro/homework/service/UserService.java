@@ -1,6 +1,7 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -24,6 +25,7 @@ import java.io.IOException;
  * Основной сервис по пользователю
  */
 @Service
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
@@ -119,22 +121,52 @@ public class UserService {
     @Transactional
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
 
-        User user = userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
-        FileUploadRequest fur = new FileUploadRequest(
-                StorageDirectories.AVATARS,
-                file.getOriginalFilename(),
-                file.getContentType(),
-                file.getSize(),
-                file.getInputStream()
-        );
+        String oldFileId = user.getAvatarFileId();
+        boolean isNewFile = !StringUtils.hasText(oldFileId);
+        String newFileId = null;
 
-        StoredFileInfo storedFile = StringUtils.hasText(user.getAvatarFileId())
-                ? fileService.replace(user.getAvatarFileId(), fur)
-                : fileService.upload(fur);
+        try {
+            FileUploadRequest fur = new FileUploadRequest(
+                    StorageDirectories.AVATARS,
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getSize(),
+                    file.getInputStream()
+            );
 
-        user.setAvatarFileId(storedFile.id());
-        userRepository.save(user);
+            StoredFileInfo storedFile;
+            if (isNewFile) {
+                storedFile = fileService.upload(fur);
+                newFileId = storedFile.id();
+                log.info("Uploaded new avatar for user: {}, fileId: {}", username, newFileId);
+            } else {
+                storedFile = fileService.replace(oldFileId, fur);
+                newFileId = storedFile.id(); // ID должен совпадать с oldFileId
+                log.info("Replaced avatar for user: {}, fileId: {}", username, newFileId);
+            }
+
+            user.setAvatarFileId(newFileId);
+            userRepository.save(user);
+            log.info("Avatar updated successfully for user: {}, fileId: {}", username, newFileId);
+
+        } catch (Exception e) {
+            // Откатываем ТОЛЬКО для НОВЫХ файлов
+            if (isNewFile && newFileId != null) {
+                try {
+                    fileService.delete(newFileId);
+                    log.info("Rolled back new avatar file: {}", newFileId);
+                } catch (Exception ex) {
+                    log.error("CRITICAL: Failed to rollback new avatar file: {}. Manual cleanup required!", newFileId, ex);
+                }
+            }
+            // Для replace() ничего не удаляем, т.к. ID не изменился
+            log.error("Failed to update avatar for user: {}", username, e);
+            throw e;
+        }
     }
+
 
 }
