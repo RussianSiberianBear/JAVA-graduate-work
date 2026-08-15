@@ -1,4 +1,4 @@
-package ru.skypro.homework.config;
+package ru.skypro.homework.service.storage.alfresco;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

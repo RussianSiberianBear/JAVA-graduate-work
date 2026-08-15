@@ -1,6 +1,7 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -17,7 +18,6 @@ import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFileInfo;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
