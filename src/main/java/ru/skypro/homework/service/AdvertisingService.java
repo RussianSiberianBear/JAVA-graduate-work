@@ -45,12 +45,6 @@ public class AdvertisingService {
         this.fileService = fileStorageService;
     }
 
-    public Advertising findById(Long id) {
-
-        return advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
-    }
-
     public AdvertisingAllResponseDto findAll() {
 
         List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAll().stream().map(advertisingMapper::toResponse).toList();
@@ -107,7 +101,7 @@ public class AdvertisingService {
     }
 
     @Transactional
-    public void deleteById(Long id) {
+    public void deleteAdById(Long id) {
         advertisingRepository.deleteById(id);
     }
 

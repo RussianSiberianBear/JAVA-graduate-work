@@ -110,7 +110,7 @@ public class AdsController {
     })
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<AdvertisingWithAuthorDto> deleteAdsById(@PathVariable @Valid Long id) {
+    public ResponseEntity<String> deleteAdsById(@PathVariable @Valid Long id) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -120,7 +120,7 @@ public class AdsController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        advertisingService.deleteById(id);
+        advertisingService.deleteAdById(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 

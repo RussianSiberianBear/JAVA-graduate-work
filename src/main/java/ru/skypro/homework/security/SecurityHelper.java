@@ -67,7 +67,7 @@ public class SecurityHelper {
      *
      * @return Коллеция ролей
      */
-    public Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities() {
+    public Collection<? extends GrantedAuthority> getAuthorities() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null ? authentication.getAuthorities() : null;
     }
