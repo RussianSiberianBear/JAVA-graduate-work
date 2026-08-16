@@ -318,8 +318,14 @@ src/
 │   │   │   └── UserUpdateInfoDto.java
 │   │   │
 │   │   ├── exception/                          # Пользовательские исключения
+│   │   │   ├── AdvertisingCreationException.java
+│   │   │   ├── AdvertisingDeletionException.java
+│   │   │   ├── AdvertisingImageUpdateException.java
 │   │   │   ├── AdvertisingNotFoundException.java
+│   │   │   ├── AdvertisingRetrievalException.java
+│   │   │   ├── AdvertisingUpdateException.java
 │   │   │   ├── CommentNotFoundException.java
+│   │   │   ├── FileStorageException.java
 │   │   │   ├── InvalidPasswordException.java
 │   │   │   └── UsernameNotFoundException.java
 │   │   │
