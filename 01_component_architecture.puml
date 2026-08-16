@@ -1,0 +1,121 @@
+@startuml
+!theme plain
+title Компонентная архитектура backend-приложения объявлений
+left to right direction
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+actor "Пользователь" as User
+component "Frontend\n(готовый клиент)" as Frontend
+
+package "Spring Boot Backend" {
+  package "Controller layer" {
+    [AuthController] as AuthController
+    [UserController] as UserController
+    [AdsController] as AdsController
+    [ImageController] as ImageController
+  }
+
+  package "Service layer" {
+    [AuthServiceImpl] as AuthService
+    [UserService] as UserService
+    [AdvertisingService] as AdvertisingService
+    [CommentService] as CommentService
+  }
+
+  package "Security" {
+    [SecurityFilterChain] as SecurityFilter
+    [UserDetailsServiceImpl] as UserDetailsService
+    [SecurityHelper] as SecurityHelper
+    [BCryptPasswordEncoder] as PasswordEncoder
+  }
+
+  package "Mapping / DTO" {
+    [UserMapper] as UserMapper
+    [AdvertisingMapper] as AdvertisingMapper
+    [CommentMapper] as CommentMapper
+  }
+
+  package "Persistence" {
+    [UserRepository] as UserRepository
+    [AdvertisingRepository] as AdvertisingRepository
+    [CommentRepository] as CommentRepository
+  }
+
+  package "File storage abstraction" {
+    interface "FileStorageService" as FileStorageService
+    [AlfrescoFileStorageService] as AlfrescoStorage
+    [AlfrescoCleanupJob] as CleanupJob
+  }
+
+  [ApiExceptionHandler] as ExceptionHandler
+}
+
+database "PostgreSQL" as DB
+cloud "Alfresco Content Services\nREST API" as Alfresco
+component "Swagger / OpenAPI" as Swagger
+component "Liquibase" as Liquibase
+
+User --> Frontend
+Frontend --> SecurityFilter : HTTP / REST\nBasic Auth
+SecurityFilter --> AuthController
+SecurityFilter --> UserController
+SecurityFilter --> AdsController
+SecurityFilter --> ImageController
+
+AuthController --> AuthService
+UserController --> UserService
+AdsController --> AdvertisingService
+AdsController --> CommentService
+ImageController --> FileStorageService
+
+AuthService --> UserRepository
+AuthService --> UserMapper
+AuthService --> UserDetailsService
+AuthService --> PasswordEncoder
+
+UserService --> UserRepository
+UserService --> UserMapper
+UserService --> FileStorageService
+UserService --> PasswordEncoder
+
+AdvertisingService --> AdvertisingRepository
+AdvertisingService --> UserRepository
+AdvertisingService --> AdvertisingMapper
+AdvertisingService --> SecurityHelper
+AdvertisingService --> FileStorageService
+
+CommentService --> CommentRepository
+CommentService --> AdvertisingRepository
+CommentService --> CommentMapper
+CommentService --> SecurityHelper
+
+UserDetailsService --> UserRepository
+SecurityHelper ..> SecurityFilter : AuthenticationContext
+
+UserRepository --> DB
+AdvertisingRepository --> DB
+CommentRepository --> DB
+
+AlfrescoStorage ..|> FileStorageService
+AlfrescoStorage --> Alfresco : REST
+CleanupJob --> UserRepository
+CleanupJob --> AdvertisingRepository
+CleanupJob --> FileStorageService
+
+Liquibase --> DB : migrations
+Swagger ..> AuthController
+Swagger ..> UserController
+Swagger ..> AdsController
+Swagger ..> ImageController
+
+ExceptionHandler ..> AuthController
+ExceptionHandler ..> UserController
+ExceptionHandler ..> AdsController
+ExceptionHandler ..> ImageController
+
+note bottom of Frontend
+  Frontend и OpenAPI-контракт являются
+  внешним техническим заданием для backend.
+end note
+@enduml

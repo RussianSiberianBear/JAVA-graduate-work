@@ -1,0 +1,45 @@
+@startuml
+!theme plain
+title Аутентификация и контроль доступа
+left to right direction
+
+actor "Клиент" as Client
+component "BasicAuthCorsFilter" as CorsFilter
+component "Spring Security\nSecurityFilterChain" as Security
+component "UserDetailsServiceImpl" as UDS
+component "BCryptPasswordEncoder" as Encoder
+database "PostgreSQL" as DB
+component "SecurityHelper" as Helper
+component "Controllers / Services" as App
+
+Client --> CorsFilter : HTTP request
+CorsFilter --> Security
+Security --> UDS : loadUserByUsername(email)
+UDS --> DB : UserRepository.findByEmail(...)
+DB --> UDS : User + role
+UDS --> Security : UserDetailsImpl
+Security --> Encoder : verify password
+Encoder --> Security : valid / invalid
+Security --> Helper : Authentication stored\nin SecurityContext
+Helper --> App : current user / USER / ADMIN
+
+note bottom of Security
+  В WebSecurityConfig:
+  /users/** требует authentication.
+  /ads/** и /images/** находятся в whitelist,
+  поэтому дополнительные проверки операций
+  выполняются в контроллерах и SecurityHelper.
+end note
+
+package "Права на бизнес-операции" {
+  usecase "Публичное чтение\nобъявлений/изображений" as PublicRead
+  usecase "Создание объявления\nи комментария" as Create
+  usecase "Изменение своих\nданных/объявлений/комментариев" as Own
+  usecase "ADMIN: изменение/удаление\nчужого контента" as Admin
+}
+
+App --> PublicRead
+App --> Create
+App --> Own
+App --> Admin
+@enduml

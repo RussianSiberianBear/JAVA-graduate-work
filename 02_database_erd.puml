@@ -1,0 +1,62 @@
+@startuml
+!theme plain
+title ER-диаграмма базы данных
+hide methods
+hide stereotypes
+skinparam linetype ortho
+
+entity "user" as users {
+  * id : BIGINT <<PK>>
+  --
+  * email : VARCHAR(32) <<UQ>>
+  * password : VARCHAR(255)
+  * first_name : VARCHAR(32)
+  * last_name : VARCHAR(32)
+  * phone : VARCHAR(32)
+  * role : VARCHAR(32)
+  avatar_file_id : VARCHAR(255)
+}
+
+entity "advertising" as ads {
+  * id : BIGINT <<PK>>
+  --
+  * author_id : BIGINT <<FK>>
+  * image_file_id : VARCHAR(255) <<UQ>>
+  * price : INT
+  * title : VARCHAR(255)
+  * description : VARCHAR(255)
+}
+
+entity "advertising_comments" as comments {
+  * id : BIGINT <<PK>>
+  --
+  * advertising_id : BIGINT <<FK>>
+  * author_id : BIGINT <<FK>>
+  created_at : TIMESTAMP
+  text : TEXT
+}
+
+users ||--o{ ads : "author_id"
+users ||--o{ comments : "author_id"
+ads ||--o{ comments : "advertising_id"
+
+note right of ads
+  FK advertising.author_id -> user.id
+  ON DELETE CASCADE
+  INDEX idx_advertising_author
+end note
+
+note right of comments
+  FK advertising_comments.advertising_id -> advertising.id
+  FK advertising_comments.author_id -> user.id
+  ON DELETE CASCADE
+  INDEX idx_comments_advertising
+  INDEX idx_comments_author
+end note
+
+note left of users
+  INDEX idx_user_email
+  file id columns enlarged to VARCHAR(255)
+  by Liquibase migration v2
+end note
+@enduml

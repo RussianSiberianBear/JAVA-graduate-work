@@ -1,0 +1,56 @@
+@startuml
+!theme plain
+title Создание объявления с изображением
+
+autonumber
+actor "Авторизованный пользователь" as User
+participant "Frontend" as FE
+participant "AdsController" as Controller
+participant "SecurityHelper" as Security
+participant "AdvertisingService" as Service
+participant "UserRepository" as UserRepo
+participant "FileStorageService" as Storage
+participant "AlfrescoFileStorageService" as AlfrescoStorage
+participant "Alfresco REST API" as Alfresco
+participant "AdvertisingMapper" as Mapper
+participant "AdvertisingRepository" as AdRepo
+database "PostgreSQL" as DB
+
+User -> FE : Заполняет объявление\nи выбирает изображение
+FE -> Controller : POST /ads\nproperties + image
+Controller -> Security : isAuthenticated()
+Security --> Controller : true
+Controller -> Security : getCurrentUsername()
+Security --> Controller : username
+Controller -> Service : createAds(username, properties, image)
+Service -> UserRepo : findByEmail(username)
+UserRepo -> DB : SELECT user
+DB --> UserRepo : User
+UserRepo --> Service : User
+
+Service -> Storage : upload(FileUploadRequest)
+Storage -> AlfrescoStorage : upload(...)
+AlfrescoStorage -> Alfresco : POST file content
+Alfresco --> AlfrescoStorage : file id + metadata
+AlfrescoStorage --> Storage : StoredFileInfo
+Storage --> Service : StoredFileInfo
+
+Service -> Mapper : DTO/entity mapping
+Mapper --> Service : Advertising
+Service -> AdRepo : save(advertising)
+AdRepo -> DB : INSERT advertising
+DB --> AdRepo : saved entity
+AdRepo --> Service : Advertising
+Service -> Mapper : toDto(saved entity)
+Mapper --> Service : AdvertisingOneResponseDto
+Service --> Controller : DTO
+Controller --> FE : HTTP 201 Created + JSON
+FE --> User : Новое объявление
+
+alt ошибка сохранения объявления после загрузки файла
+  Service -> Storage : delete(uploadedFileId)
+  Storage -> AlfrescoStorage : delete(fileId)
+  AlfrescoStorage -> Alfresco : DELETE file
+  Service --> Controller : AdvertisingCreationException
+end
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+!theme plain
+title Обновление изображения объявления с компенсационным rollback
+
+autonumber
+actor "Авторизованный пользователь" as User
+participant "Frontend" as FE
+participant "AdsController" as Controller
+participant "SecurityHelper" as Security
+participant "AdvertisingService" as Service
+participant "AdvertisingRepository" as Repo
+participant "FileStorageService" as Storage
+participant "AlfrescoFileStorageService" as AlfrescoStorage
+participant "Alfresco REST API" as Alfresco
+database "PostgreSQL" as DB
+
+User -> FE : Выбирает новое изображение
+FE -> Controller : PATCH /ads/{id}/image
+Controller -> Security : authentication / role / ownership check
+Security --> Controller : allowed
+Controller -> Service : updateAdsImage(id, file)
+Service -> Repo : findById(id)
+Repo -> DB : SELECT advertising
+DB --> Repo : Advertising(oldImageFileId)
+Repo --> Service : Advertising
+
+Service -> Storage : upload(new image)
+Storage -> AlfrescoStorage : upload(...)
+AlfrescoStorage -> Alfresco : POST new file
+Alfresco --> AlfrescoStorage : newFileId
+AlfrescoStorage --> Service : StoredFileInfo(newFileId)
+
+Service -> Storage : delete(oldImageFileId)
+Storage -> AlfrescoStorage : delete(oldImageFileId)
+AlfrescoStorage -> Alfresco : DELETE old file
+
+alt старый файл успешно удалён
+  Service -> Repo : save(entity with newFileId)
+  Repo -> DB : UPDATE advertising.image_file_id
+  DB --> Repo : OK
+  Repo --> Service : saved
+  Service --> Controller : success
+  Controller --> FE : HTTP 200
+else удаление старого файла завершилось ошибкой
+  Service -> Storage : delete(newFileId)\nкомпенсация
+  Storage -> AlfrescoStorage : delete(newFileId)
+  AlfrescoStorage -> Alfresco : DELETE newly uploaded file
+  Service --> Controller : AdvertisingImageUpdateException
+  Controller --> FE : error response
+end
+@enduml
