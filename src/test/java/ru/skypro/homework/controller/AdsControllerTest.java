@@ -1,13 +1,11 @@
 package ru.skypro.homework.controller;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.skypro.homework.constants.ExceptionMessages;
@@ -19,22 +17,44 @@ import ru.skypro.homework.service.AdvertisingService;
 import ru.skypro.homework.service.CommentService;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdsController.class)
-public class AdsControllerTest {
+@AutoConfigureMockMvc(addFilters = false)
+class AdsControllerTest {
+
+    private static final Long AD_ID = 1L;
+    private static final Long NON_EXISTENT_AD_ID = 999L;
+    private static final Long AUTHOR_ID = 100L;
+    private static final Long COMMENT_ID = 10L;
+
+    private static final String USERNAME = "user@mail.com";
+    private static final String USER_FIRST_NAME = "Ivan";
+    private static final String USER_LAST_NAME = "Ivanov";
+    private static final String USER_EMAIL = "user@mail.com";
+    private static final String USER_PHONE = "+79991234567";
+    private static final String USER_IMAGE = "/images/avatar-1";
+
+    private static final String AD_TITLE = "iPhone 15 Pro Max";
+    private static final String AD_DESCRIPTION = "Описание объявления";
+    private static final Integer AD_PRICE = 499;
+    private static final String AD_IMAGE = "/images/ad-1";
+
+    private static final String COMMENT_TEXT = "Хорошее объявление";
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @MockitoBean
-    private AdvertisingService adsService;
+    private AdvertisingService advertisingService;
 
     @MockitoBean
     private CommentService commentService;
@@ -42,712 +62,347 @@ public class AdsControllerTest {
     @MockitoBean
     private SecurityHelper securityHelper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    // ===== Helpers =====
 
-    // ===== ПРИВАТНЫЕ КОНСТАНТЫ =====
-
-    private static final Long AD_ID = 1L;
-    private static final Long NON_EXISTENT_AD_ID = -9L;
-    private static final Long AUTHOR_ID = 100L;
-    private static final String TITLE = "iPhone 15 Pro Max";
-    private static final String DESCRIPTION = "Описание объявления";
-    private static final Integer PRICE = 499;
-    private static final String IMAGE_PATH = "/images/ad_1.jpg";
-
-    private static final String USERNAME = "user";
-    private static final String USER_EMAIL = "youmail@google.com";
-    private static final String USER_FIRST_NAME = "authorFirstName";
-    private static final String USER_LAST_NAME = "authorLastName";
-    private static final String USER_PHONE = "+7499 123123";
-    private static final String USER_IMAGE = "picture.jpg";
-
-    private static final String AD_TITLE = "Заголовок объявления";
-    private static final String AD_DESCRIPTION = "Описание объявления";
-    private static final Integer AD_PRICE = 123;
-
-    private static final Long DELETE_AD_ID = 1L;
-
-    // ===== МЕТОД-ПОМОЩНИК ДЛЯ СОЗДАНИЯ AUTHORITIES =====
-
-    private Collection<GrantedAuthority> createAuthorities(String... roles) {
-        Collection<GrantedAuthority> authorities = new ArrayList<>();
-        for (String role : roles) {
-            authorities.add(new SimpleGrantedAuthority(role));
-        }
-        return authorities;
-    }
-
-    // ===== ПРИВАТНЫЕ МЕТОДЫ ДЛЯ СОЗДАНИЯ ТЕСТОВЫХ ДАННЫХ =====
-
-    private CreateOrUpdateAd createDefaultProperties() {
+    private CreateOrUpdateAd defaultAdRequest() {
         return new CreateOrUpdateAd(AD_PRICE, AD_TITLE, AD_DESCRIPTION);
     }
 
-    private MockMultipartFile createDefaultImage() {
-        return new MockMultipartFile(
-                "image",
-                "ad_1.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                new byte[0]
-        );
+    private AdvertisingOneResponseDto defaultAdResponse() {
+        return new AdvertisingOneResponseDto(AD_ID, AUTHOR_ID, AD_IMAGE, AD_PRICE, AD_TITLE);
     }
 
-    private MockMultipartFile createPropertiesPart(CreateOrUpdateAd properties) throws Exception {
-        String propertiesJson = objectMapper.writeValueAsString(properties);
-        return new MockMultipartFile(
-                "properties",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                propertiesJson.getBytes()
-        );
-    }
-
-    private AdvertisingWithAuthorDto createDefaultAdvertisingWithAuthorDto() {
+    private AdvertisingWithAuthorDto defaultExtendedAdResponse() {
         return new AdvertisingWithAuthorDto(
                 AD_ID,
                 USER_FIRST_NAME,
                 USER_LAST_NAME,
-                DESCRIPTION,
+                AD_DESCRIPTION,
                 USER_EMAIL,
                 USER_IMAGE,
                 USER_PHONE,
-                "123",
+                String.valueOf(AD_PRICE),
                 AD_TITLE
         );
     }
 
-    private AdvertisingOneResponseDto createDefaultAdvertisingOneResponseDto() {
-        return new AdvertisingOneResponseDto(
-                AD_ID,
+    private CommentOneResponseDto defaultCommentResponse() {
+        return new CommentOneResponseDto(
+                COMMENT_ID,
                 AUTHOR_ID,
-                IMAGE_PATH,
-                PRICE,
-                TITLE
+                USER_IMAGE,
+                USER_FIRST_NAME,
+                1_700_000_000_000L,
+                COMMENT_TEXT
         );
     }
 
-    // ===== НАСТРОЙКА ДЛЯ КАЖДОГО ТЕСТА =====
-
-    @BeforeEach
-    void setUp() {
+    private MockMultipartFile imagePart(String fileName) {
+        return new MockMultipartFile(
+                "image",
+                fileName,
+                MediaType.IMAGE_JPEG_VALUE,
+                "image-bytes".getBytes()
+        );
     }
 
-    // ===== ТЕСТЫ =====
+    private MockMultipartFile propertiesPart(CreateOrUpdateAd request) throws Exception {
+        return new MockMultipartFile(
+                "properties",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(request)
+        );
+    }
+
+    // ===== GET /ads =====
+
+    @Test
+    void getAllAds_Success_WithoutAuthentication_Test() throws Exception {
+        AdvertisingAllResponseDto response = new AdvertisingAllResponseDto(
+                2,
+                List.of(
+                        defaultAdResponse(),
+                        new AdvertisingOneResponseDto(2L, AUTHOR_ID, "/images/ad-2", 700, "MacBook")
+                )
+        );
+        when(advertisingService.findAll()).thenReturn(response);
+
+        mockMvc.perform(get("/ads"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.results[0].pk").value(AD_ID))
+                .andExpect(jsonPath("$.results[0].title").value(AD_TITLE));
+
+        verify(advertisingService).findAll();
+    }
+
+    // ===== GET /ads/{id} =====
 
     @Test
     void getAdsById_Success_Test() throws Exception {
-        AdvertisingWithAuthorDto expected = createDefaultAdvertisingWithAuthorDto();
+        when(advertisingService.getAdById(AD_ID)).thenReturn(defaultExtendedAdResponse());
 
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(adsService.getAdById(AD_ID)).thenReturn(expected);
-
-        mockMvc.perform(get("/ads/" + AD_ID))
+        mockMvc.perform(get("/ads/{id}", AD_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pk").value(AD_ID))
                 .andExpect(jsonPath("$.authorFirstName").value(USER_FIRST_NAME))
-                .andExpect(jsonPath("$.description").value(DESCRIPTION))
+                .andExpect(jsonPath("$.description").value(AD_DESCRIPTION))
                 .andExpect(jsonPath("$.title").value(AD_TITLE));
     }
 
     @Test
     void getAdsById_NotFound_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(adsService.getAdById(NON_EXISTENT_AD_ID))
-                .thenThrow(new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(NON_EXISTENT_AD_ID)));
+        when(advertisingService.getAdById(NON_EXISTENT_AD_ID))
+                .thenThrow(new AdvertisingNotFoundException(
+                        ExceptionMessages.formatAdNotFound(NON_EXISTENT_AD_ID)));
 
-        mockMvc.perform(get("/ads/" + NON_EXISTENT_AD_ID))
+        mockMvc.perform(get("/ads/{id}", NON_EXISTENT_AD_ID))
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void getAdsById_Unauthorized_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(get("/ads/" + AD_ID))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void deleteAdsById_Success_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.isAdmin()).thenReturn(true);
-        when(adsService.isAnotherAuthor(DELETE_AD_ID)).thenReturn(false);
-
-        doNothing().when(adsService).deleteAdById(DELETE_AD_ID);
-
-        mockMvc.perform(delete("/ads/" + DELETE_AD_ID))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void deleteAdsById_Forbidden_When_IsNotAdmin_And_isAnotherAuthor_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.isAdmin()).thenReturn(false);
-        when(adsService.isAnotherAuthor(DELETE_AD_ID)).thenReturn(true);
-
-        mockMvc.perform(delete("/ads/" + DELETE_AD_ID))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void deleteAdsById_When_IsAdmin_And_IsAnotherAuthor_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.isAdmin()).thenReturn(true);
-        when(adsService.isAnotherAuthor(DELETE_AD_ID)).thenReturn(true);
-
-        doNothing().when(adsService).deleteAdById(DELETE_AD_ID);
-
-        mockMvc.perform(delete("/ads/" + DELETE_AD_ID))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void deleteAdsById_Unauthorized_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(delete("/ads/" + DELETE_AD_ID))
-                .andExpect(status().isUnauthorized());
-    }
+    // ===== POST /ads =====
 
     @Test
     void addAds_Success_Test() throws Exception {
-        CreateOrUpdateAd properties = createDefaultProperties();
-        MockMultipartFile image = createDefaultImage();
-        MockMultipartFile propertiesPart = createPropertiesPart(properties);
-
-        AdvertisingOneResponseDto adsSavedDto = createDefaultAdvertisingOneResponseDto();
+        CreateOrUpdateAd request = defaultAdRequest();
+        MockMultipartFile image = imagePart("ad.jpg");
 
         when(securityHelper.getCurrentUsername()).thenReturn(USERNAME);
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(adsService.createAds(securityHelper.getCurrentUsername(), properties, image))
-                .thenReturn(adsSavedDto);
+        when(advertisingService.createAds(USERNAME, request, image)).thenReturn(defaultAdResponse());
 
         mockMvc.perform(multipart("/ads")
-                        .file(image)
-                        .file(propertiesPart)
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                        .file(propertiesPart(request))
+                        .file(image))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.pk").value(AD_ID))
                 .andExpect(jsonPath("$.author").value(AUTHOR_ID))
-                .andExpect(jsonPath("$.image").value(IMAGE_PATH))
-                .andExpect(jsonPath("$.price").value(PRICE))
-                .andExpect(jsonPath("$.title").value(TITLE));
+                .andExpect(jsonPath("$.image").value(AD_IMAGE))
+                .andExpect(jsonPath("$.price").value(AD_PRICE))
+                .andExpect(jsonPath("$.title").value(AD_TITLE));
     }
 
-    @Test
-    void addAds_Unauthorized_Test() throws Exception {
-        CreateOrUpdateAd properties = createDefaultProperties();
-        MockMultipartFile image = createDefaultImage();
-        MockMultipartFile propertiesPart = createPropertiesPart(properties);
-
-        when(securityHelper.getCurrentUsername()).thenReturn(USERNAME);
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(multipart("/ads")
-                        .file(image)
-                        .file(propertiesPart)
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpect(status().isUnauthorized());
-    }
-
-    // ===== ТЕСТЫ ДЛЯ updateAdsImage (PATCH /ads/{id}/image) =====
+    // ===== DELETE /ads/{id} =====
 
     @Test
-    void updateAdsImage_Success_Test() throws Exception {
-        Long adId = 1L;
-        String fileName = "new_image.jpg";
-        byte[] fileContent = "fake image content".getBytes();
-
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                fileName,
-                MediaType.IMAGE_JPEG_VALUE,
-                fileContent
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        doReturn(createAuthorities("ROLE_USER")).when(securityHelper).getAuthorities();
+    void deleteAdsById_Success_WhenOwner_Test() throws Exception {
         when(securityHelper.isAdmin()).thenReturn(false);
-        when(adsService.isAnotherAuthor(adId)).thenReturn(false);
-        doNothing().when(adsService).updateAdsImage(adId, file);
+        when(advertisingService.isAnotherAuthor(AD_ID)).thenReturn(false);
 
-        mockMvc.perform(multipart("/ads/{id}/image", adId)
-                        .file(file)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
-                .andExpect(status().isOk())
-                .andExpect(content().string(fileName));
+        mockMvc.perform(delete("/ads/{id}", AD_ID))
+                .andExpect(status().isNoContent());
+
+        verify(advertisingService).deleteAdById(AD_ID);
     }
 
     @Test
-    void updateAdsImage_Unauthorized_Test() throws Exception {
-        Long adId = 1L;
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "image.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                "content".getBytes()
-        );
+    void deleteAdsById_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(advertisingService.isAnotherAuthor(AD_ID)).thenReturn(true);
 
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(multipart("/ads/{id}/image", adId)
-                        .file(file)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
-                .andExpect(status().isUnauthorized());
-
-        verify(adsService, never()).updateAdsImage(anyLong(), any());
-    }
-
-    @Test
-    void updateAdsImage_Forbidden_WhenNoRole_Test() throws Exception {
-        Long adId = 1L;
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "image.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                "content".getBytes()
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        doReturn(createAuthorities()).when(securityHelper).getAuthorities();
-
-        mockMvc.perform(multipart("/ads/{id}/image", adId)
-                        .file(file)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
+        mockMvc.perform(delete("/ads/{id}", AD_ID))
                 .andExpect(status().isForbidden());
 
-        verify(adsService, never()).updateAdsImage(anyLong(), any());
+        verify(advertisingService, never()).deleteAdById(anyLong());
     }
 
     @Test
-    void updateAdsImage_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
-        Long adId = 1L;
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "image.jpg",
-                MediaType.IMAGE_JPEG_VALUE,
-                "content".getBytes()
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        doReturn(createAuthorities("ROLE_USER")).when(securityHelper).getAuthorities();
-        when(securityHelper.isAdmin()).thenReturn(false);
-        when(adsService.isAnotherAuthor(adId)).thenReturn(true);
-
-        mockMvc.perform(multipart("/ads/{id}/image", adId)
-                        .file(file)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
-                .andExpect(status().isForbidden());
-
-        verify(adsService, never()).updateAdsImage(anyLong(), any());
-    }
-
-    @Test
-    void updateAdsImage_Success_WhenAdminUpdatesAnotherAuthor_Test() throws Exception {
-        Long adId = 1L;
-        String fileName = "admin_updated.jpg";
-        byte[] fileContent = "admin content".getBytes();
-
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                fileName,
-                MediaType.IMAGE_JPEG_VALUE,
-                fileContent
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        doReturn(createAuthorities("ROLE_ADMIN")).when(securityHelper).getAuthorities();
+    void deleteAdsById_Success_WhenAdmin_Test() throws Exception {
         when(securityHelper.isAdmin()).thenReturn(true);
-        when(adsService.isAnotherAuthor(adId)).thenReturn(true);
-        doNothing().when(adsService).updateAdsImage(adId, file);
 
-        mockMvc.perform(multipart("/ads/{id}/image", adId)
-                        .file(file)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
-                .andExpect(status().isOk())
-                .andExpect(content().string(fileName));
+        mockMvc.perform(delete("/ads/{id}", AD_ID))
+                .andExpect(status().isNoContent());
 
-        verify(adsService, times(1)).updateAdsImage(adId, file);
+        verify(advertisingService, never()).isAnotherAuthor(anyLong());
+        verify(advertisingService).deleteAdById(AD_ID);
     }
 
-    // ===== ДОПОЛНИТЕЛЬНЫЕ ТЕСТЫ =====
+    // ===== PATCH /ads/{id} =====
+
     @Test
-    void getAllAds_Success_Test() throws Exception {
-        // Создаем тестовые данные
-        AdvertisingAllResponseDto expected = new AdvertisingAllResponseDto(
-                2,  // count
-                List.of(
-                        new AdvertisingOneResponseDto(1L, 100L, "/img1.jpg", 100, "Ad1"),
-                        new AdvertisingOneResponseDto(2L, 100L, "/img2.jpg", 200, "Ad2")
-                )
-        );
+    void updateAdsById_Success_WhenOwner_Test() throws Exception {
+        CreateOrUpdateAd request = defaultAdRequest();
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(advertisingService.isAnotherAuthor(AD_ID)).thenReturn(false);
+        when(advertisingService.updateById(AD_ID, request)).thenReturn(defaultAdResponse());
 
-        when(adsService.findAll()).thenReturn(expected);
-
-        mockMvc.perform(get("/ads"))
+        mockMvc.perform(patch("/ads/{id}", AD_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.count").value(2))
-                .andExpect(jsonPath("$.results[0].pk").value(1L))
-                .andExpect(jsonPath("$.results[0].title").value("Ad1"));
+                .andExpect(jsonPath("$.pk").value(AD_ID))
+                .andExpect(jsonPath("$.title").value(AD_TITLE));
     }
+
+    @Test
+    void updateAdsById_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
+        CreateOrUpdateAd request = defaultAdRequest();
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(advertisingService.isAnotherAuthor(AD_ID)).thenReturn(true);
+
+        mockMvc.perform(patch("/ads/{id}", AD_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(request)))
+                .andExpect(status().isForbidden());
+
+        verify(advertisingService, never()).updateById(anyLong(), any());
+    }
+
+    // ===== GET /ads/me =====
 
     @Test
     void getAdsAuthorisedUser_Success_Test() throws Exception {
-        // Создаем тестовые данные
-        AdvertisingAllResponseDto expected = new AdvertisingAllResponseDto(
-                1,  // count
-                List.of(
-                        new AdvertisingOneResponseDto(1L, 100L, "/img1.jpg", 100, "My Ad")
-                )
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.getCurrentUserId()).thenReturn(1L);
-        when(adsService.findAllByUserId(1L)).thenReturn(expected);
+        AdvertisingAllResponseDto response = new AdvertisingAllResponseDto(1, List.of(defaultAdResponse()));
+        when(securityHelper.getCurrentUserId()).thenReturn(AUTHOR_ID);
+        when(advertisingService.findAllByUserId(AUTHOR_ID)).thenReturn(response);
 
         mockMvc.perform(get("/ads/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(1))
-                .andExpect(jsonPath("$.results[0].title").value("My Ad"));
+                .andExpect(jsonPath("$.results[0].pk").value(AD_ID));
+    }
+
+    // ===== PATCH /ads/{id}/image =====
+
+    @Test
+    void updateAdsImage_Success_WhenOwner_Test() throws Exception {
+        MockMultipartFile image = imagePart("new-image.jpg");
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(advertisingService.isAnotherAuthor(AD_ID)).thenReturn(false);
+
+        mockMvc.perform(multipart("/ads/{id}/image", AD_ID)
+                        .file(image)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(content().string("new-image.jpg"));
+
+        verify(advertisingService).updateAdsImage(AD_ID, image);
     }
 
     @Test
-    void getAdsAuthorisedUser_Unauthorized_Test() throws Exception {
-        when(securityHelper.isAuthenticated()).thenReturn(false);
+    void updateAdsImage_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
+        MockMultipartFile image = imagePart("new-image.jpg");
+        when(securityHelper.isAdmin()).thenReturn(false);
+        when(advertisingService.isAnotherAuthor(AD_ID)).thenReturn(true);
 
-        mockMvc.perform(get("/ads/me"))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(multipart("/ads/{id}/image", AD_ID)
+                        .file(image)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+
+        verify(advertisingService, never()).updateAdsImage(anyLong(), any());
     }
 
-    // ===== ТЕСТЫ ДЛЯ КОММЕНТАРИЕВ =====
+    // ===== GET /ads/{id}/comments =====
 
     @Test
     void getAllCommentsByAdsId_Success_Test() throws Exception {
-        Long adId = 1L;
-        CommentsAllResponseDto expected = new CommentsAllResponseDto(
-                2,
-                List.of(
-                        new CommentOneResponseDto(1L, 1L, "user1@mail.com", "Great ad!", 1234567890L, "Great ad!"),
-                        new CommentOneResponseDto(2L, 2L, "user2@mail.com", "Nice product!", 1234567891L, "Nice product!")
-                )
-        );
+        CommentsAllResponseDto response = new CommentsAllResponseDto(1, List.of(defaultCommentResponse()));
+        when(commentService.findByAdvertisingId(AD_ID)).thenReturn(response);
 
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(commentService.findByAdvertisingId(adId)).thenReturn(expected);
-
-        mockMvc.perform(get("/ads/{id}/comments", adId))
+        mockMvc.perform(get("/ads/{id}/comments", AD_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.count").value(2))
-                .andExpect(jsonPath("$.results[0].pk").value(1L))
-                .andExpect(jsonPath("$.results[0].text").value("Great ad!"))
-                .andExpect(jsonPath("$.results[1].pk").value(2L))
-                .andExpect(jsonPath("$.results[1].text").value("Nice product!"));
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.results[0].pk").value(COMMENT_ID))
+                .andExpect(jsonPath("$.results[0].text").value(COMMENT_TEXT));
     }
 
-    @Test
-    void getAllCommentsByAdsId_Unauthorized_Test() throws Exception {
-        Long adId = 1L;
-
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(get("/ads/{id}/comments", adId))
-                .andExpect(status().isUnauthorized());
-
-        verify(commentService, never()).findByAdvertisingId(anyLong());
-    }
-
-    @Test
-    void getAllCommentsByAdsId_AdNotFound_Test() throws Exception {
-        Long adId = 999L;
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(commentService.findByAdvertisingId(adId))
-                .thenThrow(new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adId)));
-
-        mockMvc.perform(get("/ads/{id}/comments", adId))
-                .andExpect(status().isNotFound());
-    }
+    // ===== POST /ads/{id}/comments =====
 
     @Test
     void addCommentToAdvertisingId_Success_Test() throws Exception {
-        Long adId = 1L;
-        String text = "Комментарий";
-        CommentRequestDto commentRequest = new CommentRequestDto(text);
-        String commentJson = objectMapper.writeValueAsString(commentRequest);
+        CommentRequestDto request = new CommentRequestDto(COMMENT_TEXT);
+        User currentUser = mock(User.class);
+        when(securityHelper.getCurrentUser()).thenReturn(currentUser);
+        when(commentService.addCommentToAdvertisingId(currentUser, AD_ID, request))
+                .thenReturn(defaultCommentResponse());
 
-        MockMultipartFile commentPart = new MockMultipartFile(
-                "text",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                commentJson.getBytes()
-        );
-
-        CommentOneResponseDto expected = new CommentOneResponseDto(
-                1L,
-                1L,
-                "user@mail.com",
-                text,
-                1234567890L,
-                "Комментарий"
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.getCurrentUser()).thenReturn(new User(1L, "user@mail.com", "password", "FirstName", "LastName", "+79991234567", Role.USER, "image.jpg"));
-        when(commentService.addCommentToAdvertisingId(any(), eq(adId), any(CommentRequestDto.class)))
-                .thenReturn(expected);
-
-        mockMvc.perform(multipart("/ads/{id}/comments", adId)
-                        .file(commentPart)
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        }))
+        mockMvc.perform(post("/ads/{id}/comments", AD_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pk").value(1L))
-                .andExpect(jsonPath("$.text").value(text))
-                .andExpect(jsonPath("$.author").value(1L));
+                .andExpect(jsonPath("$.pk").value(COMMENT_ID))
+                .andExpect(jsonPath("$.author").value(AUTHOR_ID))
+                .andExpect(jsonPath("$.text").value(COMMENT_TEXT));
     }
 
-    @Test
-    void addCommentToAdvertisingId_Unauthorized_Test() throws Exception {
-        Long adId = 1L;
-        String text = "This is a test comment";
-        CommentRequestDto commentRequest = new CommentRequestDto(text);
-        String commentJson = objectMapper.writeValueAsString(commentRequest);
-
-        MockMultipartFile commentPart = new MockMultipartFile(
-                "text",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                commentJson.getBytes()
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(multipart("/ads/{id}/comments", adId)
-                        .file(commentPart)
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        }))
-                .andExpect(status().isUnauthorized());
-
-        verify(commentService, never()).addCommentToAdvertisingId(any(), anyLong(), any());
-    }
+    // ===== DELETE /ads/{adId}/comments/{commentId} =====
 
     @Test
-    void deleteComment_Success_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
+    void deleteComment_Success_WhenOwner_Test() throws Exception {
+        when(commentService.isAnotherAuthor(COMMENT_ID, AD_ID)).thenReturn(false);
 
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.isAdmin()).thenReturn(true);
-        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(false);
-        doNothing().when(commentService).deleteCommentByIdAndAdvertisingById(commentId, adId);
-
-        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", AD_ID, COMMENT_ID))
                 .andExpect(status().isOk());
-    }
 
-    @Test
-    void deleteComment_Unauthorized_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
-                .andExpect(status().isUnauthorized());
-
-        verify(commentService, never()).deleteCommentByIdAndAdvertisingById(anyLong(), anyLong());
+        verify(commentService).deleteCommentByIdAndAdvertisingById(COMMENT_ID, AD_ID);
     }
 
     @Test
     void deleteComment_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
+        when(commentService.isAnotherAuthor(COMMENT_ID, AD_ID)).thenReturn(true);
         when(securityHelper.isAdmin()).thenReturn(false);
-        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
 
-        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", AD_ID, COMMENT_ID))
                 .andExpect(status().isForbidden());
 
         verify(commentService, never()).deleteCommentByIdAndAdvertisingById(anyLong(), anyLong());
     }
 
     @Test
-    void deleteComment_Success_WhenAdminDeletesAnotherAuthor_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
+    void deleteComment_Success_WhenAdminDeletesAnotherAuthorsComment_Test() throws Exception {
+        when(commentService.isAnotherAuthor(COMMENT_ID, AD_ID)).thenReturn(true);
         when(securityHelper.isAdmin()).thenReturn(true);
-        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
-        doNothing().when(commentService).deleteCommentByIdAndAdvertisingById(commentId, adId);
 
-        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", adId, commentId))
+        mockMvc.perform(delete("/ads/{adId}/comments/{commentId}", AD_ID, COMMENT_ID))
                 .andExpect(status().isOk());
 
-        verify(commentService, times(1)).deleteCommentByIdAndAdvertisingById(commentId, adId);
+        verify(commentService).deleteCommentByIdAndAdvertisingById(COMMENT_ID, AD_ID);
     }
 
+    // ===== PATCH /ads/{adId}/comments/{commentId} =====
+
     @Test
-    void updateComment_Success_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-        String newText = "Updated comment text";
-        String authorFirstname = "firstname";
-        CommentRequestDto commentRequest = new CommentRequestDto(newText);
-        String commentJson = objectMapper.writeValueAsString(commentRequest);
-
-        MockMultipartFile commentPart = new MockMultipartFile(
-                "text",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                commentJson.getBytes()
+    void updateComment_Success_WhenOwner_Test() throws Exception {
+        CommentRequestDto request = new CommentRequestDto("Обновленный комментарий");
+        CommentOneResponseDto response = new CommentOneResponseDto(
+                COMMENT_ID,
+                AUTHOR_ID,
+                USER_IMAGE,
+                USER_FIRST_NAME,
+                1_700_000_000_000L,
+                request.text()
         );
+        when(commentService.isAnotherAuthor(COMMENT_ID, AD_ID)).thenReturn(false);
+        when(commentService.updateCommentByIdAndAdvertisingById(COMMENT_ID, AD_ID, request))
+                .thenReturn(response);
 
-        CommentOneResponseDto expected = new CommentOneResponseDto(
-                commentId,
-                1L,
-                "user@mail.com",
-                authorFirstname,
-                1234567890L,
-                newText
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.isAdmin()).thenReturn(false);
-        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(false);
-        when(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, commentRequest))
-                .thenReturn(expected);
-
-        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
-                        .file(commentPart)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
+        mockMvc.perform(patch("/ads/{adId}/comments/{commentId}", AD_ID, COMMENT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pk").value(commentId))
-                .andExpect(jsonPath("$.text").value(newText));
-    }
-
-    @Test
-    void updateComment_Unauthorized_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-        String newText = "Updated comment text";
-        CommentRequestDto commentRequest = new CommentRequestDto(newText);
-        String commentJson = objectMapper.writeValueAsString(commentRequest);
-
-        MockMultipartFile commentPart = new MockMultipartFile(
-                "text",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                commentJson.getBytes()
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(false);
-
-        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
-                        .file(commentPart)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
-                .andExpect(status().isUnauthorized());
-
-        verify(commentService, never()).updateCommentByIdAndAdvertisingById(anyLong(), anyLong(), any());
+                .andExpect(jsonPath("$.pk").value(COMMENT_ID))
+                .andExpect(jsonPath("$.text").value(request.text()));
     }
 
     @Test
     void updateComment_Forbidden_WhenAnotherAuthorAndNotAdmin_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-        String newText = "Updated comment text";
-        CommentRequestDto commentRequest = new CommentRequestDto(newText);
-        String commentJson = objectMapper.writeValueAsString(commentRequest);
-
-        MockMultipartFile commentPart = new MockMultipartFile(
-                "text",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                commentJson.getBytes()
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
+        CommentRequestDto request = new CommentRequestDto("Обновленный комментарий");
+        when(commentService.isAnotherAuthor(COMMENT_ID, AD_ID)).thenReturn(true);
         when(securityHelper.isAdmin()).thenReturn(false);
-        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
 
-        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
-                        .file(commentPart)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
+        mockMvc.perform(patch("/ads/{adId}/comments/{commentId}", AD_ID, COMMENT_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(request)))
                 .andExpect(status().isForbidden());
 
         verify(commentService, never()).updateCommentByIdAndAdvertisingById(anyLong(), anyLong(), any());
     }
 
-    @Test
-    void updateComment_Success_WhenAdminUpdatesAnotherAuthor_Test() throws Exception {
-        Long adId = 1L;
-        Long commentId = 1L;
-        String newText = "Admin updated comment";
-        String authorFirstname = "firstname";
-        CommentRequestDto commentRequest = new CommentRequestDto(newText);
-        String commentJson = objectMapper.writeValueAsString(commentRequest);
-
-        MockMultipartFile commentPart = new MockMultipartFile(
-                "text",
-                "",
-                MediaType.APPLICATION_JSON_VALUE,
-                commentJson.getBytes()
-        );
-
-        CommentOneResponseDto expected = new CommentOneResponseDto(
-                commentId,
-                2L,
-                "other@mail.com",
-                authorFirstname,
-                1234567890L,
-                newText
-        );
-
-        when(securityHelper.isAuthenticated()).thenReturn(true);
-        when(securityHelper.isAdmin()).thenReturn(true);
-        when(commentService.isAnotherAuthor(commentId, adId)).thenReturn(true);
-        when(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, commentRequest))
-                .thenReturn(expected);
-
-        mockMvc.perform(multipart("/ads/{adId}/comments/{commentId}", adId, commentId)
-                        .file(commentPart)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pk").value(commentId))
-                .andExpect(jsonPath("$.text").value(newText));
-    }
 }

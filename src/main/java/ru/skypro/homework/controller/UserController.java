@@ -56,14 +56,6 @@ public class UserController {
 
     public ResponseEntity<String> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        if (securityHelper.getAuthorities().stream()
-                .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
-                        auth.getAuthority().equals("ROLE_USER"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
 
         String username = securityHelper.getCurrentUsername();
         userService.passwordUpdate(
@@ -93,9 +85,6 @@ public class UserController {
     })
     public ResponseEntity<UserInfoResponseDto> getUsersInfo() {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return ResponseEntity.ok(userService.getUserInfo(securityHelper.getCurrentUsername()));
     }
 
@@ -117,9 +106,6 @@ public class UserController {
     })
     public ResponseEntity<UserUpdateInfoDto> updateUsersInfo(@RequestBody @Valid UserUpdateInfoDto request) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return ResponseEntity.ok(userService.updateUser(securityHelper.getCurrentUsername(), request));
     }
 
@@ -141,9 +127,6 @@ public class UserController {
     })
     public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         try {
             userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
             return ResponseEntity.ok().build();

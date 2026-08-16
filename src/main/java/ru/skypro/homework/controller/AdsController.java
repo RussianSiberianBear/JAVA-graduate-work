@@ -63,9 +63,6 @@ public class AdsController {
     })
     public ResponseEntity<AdvertisingOneResponseDto> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(advertisingService.createAds(securityHelper.getCurrentUsername(), properties, image));
@@ -82,9 +79,6 @@ public class AdsController {
     @GetMapping("/{id}")
     public ResponseEntity<AdvertisingWithAuthorDto> getAdsById(@PathVariable @Valid Long id) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         AdvertisingWithAuthorDto ads = advertisingService.getAdById(id);
         return ResponseEntity.ok(ads);
@@ -112,9 +106,6 @@ public class AdsController {
     @Transactional
     public ResponseEntity<String> deleteAdsById(@PathVariable @Valid Long id) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -146,9 +137,6 @@ public class AdsController {
     @Transactional
     public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestBody CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -173,9 +161,6 @@ public class AdsController {
     @GetMapping("/me")
     public ResponseEntity<AdvertisingAllResponseDto> getAdsAuthorisedUser() {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         AdvertisingAllResponseDto ads = advertisingService.findAllByUserId(securityHelper.getCurrentUserId());
         return ResponseEntity.ok(ads);
@@ -201,15 +186,7 @@ public class AdsController {
     })
     public ResponseEntity updateAdsImage(@PathVariable @Valid Long id, @RequestParam("image") @Valid MultipartFile image) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        if (securityHelper.getAuthorities().stream()
-                .noneMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN") ||
-                        auth.getAuthority().equals("ROLE_USER"))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        if (advertisingService.isAnotherAuthor(id) && !securityHelper.isAdmin()) {
+        if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -235,9 +212,6 @@ public class AdsController {
     @GetMapping("/{id}/comments")
     public ResponseEntity<CommentsAllResponseDto> getAllCommentsByAdsId(@PathVariable @Valid Long id) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         return ResponseEntity.ok(commentService.findByAdvertisingId(id));
     }
@@ -262,9 +236,6 @@ public class AdsController {
     @PostMapping("/{id}/comments")
     public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestBody CommentRequestDto text) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
 
         return ResponseEntity.ok(commentService.addCommentToAdvertisingId(securityHelper.getCurrentUser(), id, text));
     }
@@ -292,10 +263,7 @@ public class AdsController {
     @DeleteMapping("/{adId}/comments/{commentId}")
     public ResponseEntity<String> deleteComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        if (commentService.isAnotherAuthor(commentId, adId) && !securityHelper.isAdmin()) {
+        if (!securityHelper.isAdmin() && commentService.isAnotherAuthor(commentId, adId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -327,10 +295,7 @@ public class AdsController {
     @PatchMapping("/{adId}/comments/{commentId}")
     public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestBody CommentRequestDto text) {
 
-        if (!securityHelper.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        if (commentService.isAnotherAuthor(commentId, adId) && !securityHelper.isAdmin()) {
+        if (!securityHelper.isAdmin() && commentService.isAnotherAuthor(commentId, adId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
