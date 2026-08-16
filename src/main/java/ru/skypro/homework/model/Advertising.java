@@ -15,7 +15,7 @@ public class Advertising {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     @JsonIgnore
     private User author;
@@ -31,5 +31,4 @@ public class Advertising {
 
     @Column(nullable = false, length = 255)
     private String description;
-
 }

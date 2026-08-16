@@ -1,6 +1,7 @@
 package ru.skypro.homework.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.skypro.homework.constants.ExceptionMessages;
 import ru.skypro.homework.dto.CommentOneResponseDto;
 import ru.skypro.homework.dto.CommentRequestDto;
@@ -34,9 +35,9 @@ public class CommentService {
 
     public CommentsAllResponseDto findByAdvertisingId(Long id) {
 
-        List<CommentOneResponseDto> commentListDto = commentRepository.findAllByAdvertisingId(id).stream().map(commentMapper::toResponse).toList();
         advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+        List<CommentOneResponseDto> commentListDto = commentRepository.findAllByAdvertisingId(id).stream().map(commentMapper::toResponse).toList();
         return new CommentsAllResponseDto(commentListDto.size(), commentListDto);
     }
 
@@ -61,21 +62,40 @@ public class CommentService {
         commentRepository.deleteById(id);
     }
 
+    @Transactional
     public CommentOneResponseDto updateCommentByIdAndAdvertisingById(Long commentId, Long advertisingId, CommentRequestDto dto) {
-
-        Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
-                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
+        Comment comment =
+                commentRepository.findByIdAndAdvertisingId(
+                                commentId,
+                                advertisingId
+                        )
+                        .orElseThrow(() ->
+                                new CommentNotFoundException(
+                                        ExceptionMessages.formatCommentNotFound(commentId)
+                                )
+                        );
 
         comment.setText(dto.text());
         commentRepository.save(comment);
         return commentMapper.toResponse(comment);
     }
 
+    @Transactional
     public boolean isAnotherAuthor(Long commentId, Long advertisingId) {
+        Comment comment =
+                commentRepository.findByIdAndAdvertisingId(
+                                commentId,
+                                advertisingId
+                        )
+                        .orElseThrow(() ->
+                                new CommentNotFoundException(
+                                        ExceptionMessages.formatCommentNotFound(commentId)
+                                )
+                        );
 
-        Comment comment = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
-                .orElseThrow(() -> new CommentNotFoundException(ExceptionMessages.formatCommentNotFound(commentId)));
-        return !comment.getAuthor().getId().equals(securityHelper.getCurrentUserId());
+        return !comment.getAuthor()
+                .getId()
+                .equals(securityHelper.getCurrentUserId());
     }
 
 }

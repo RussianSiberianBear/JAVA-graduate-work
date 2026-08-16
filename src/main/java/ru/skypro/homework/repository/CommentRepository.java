@@ -1,14 +1,20 @@
 package ru.skypro.homework.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.skypro.homework.model.Comment;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface CommentRepository extends JpaRepository<Comment, Long> {
+public interface CommentRepository
+        extends JpaRepository<Comment, Long> {
+
+    @EntityGraph(attributePaths = "author")
     List<Comment> findAllByAdvertisingId(Long advertisingId);
 
-    Optional<Comment> findByIdAndAdvertisingId(Long commentId, Long advertisingId);
-
+    Optional<Comment> findByIdAndAdvertisingId(
+            Long commentId,
+            Long advertisingId
+    );
 }

@@ -141,15 +141,24 @@ public class AdvertisingService {
 
     public AdvertisingWithAuthorDto getAdById(Long id) {
         try {
-            Advertising ad = advertisingRepository.findById(id)
-                    .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+            Advertising ad = advertisingRepository.findWithAuthorById(id)
+                    .orElseThrow(() ->
+                            new AdvertisingNotFoundException(
+                                    ExceptionMessages.formatAdNotFound(id)
+                            )
+                    );
+
             return advertisingMapper.toResponseWithAuthor(ad);
 
         } catch (AdvertisingNotFoundException e) {
             throw e;
         } catch (Exception e) {
             log.error("Failed to get ad with ID: {}", id, e);
-            throw new AdvertisingRetrievalException("Failed to retrieve ad with ID: " + id + ": " + e.getMessage(), e);
+            throw new AdvertisingRetrievalException(
+                    "Failed to retrieve ad with ID: "
+                            + id + ": " + e.getMessage(),
+                    e
+            );
         }
     }
 
@@ -230,17 +239,28 @@ public class AdvertisingService {
         }
     }
 
+    @Transactional
     public boolean isAnotherAuthor(Long adsId) {
         try {
             Advertising ad = advertisingRepository.findById(adsId)
-                    .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adsId)));
-            return !ad.getAuthor().getId().equals(securityHelper.getCurrentUserId());
+                    .orElseThrow(() ->
+                            new AdvertisingNotFoundException(
+                                    ExceptionMessages.formatAdNotFound(adsId)
+                            )
+                    );
+
+            return !ad.getAuthor()
+                    .getId()
+                    .equals(securityHelper.getCurrentUserId());
 
         } catch (AdvertisingNotFoundException e) {
             throw e;
         } catch (Exception e) {
             log.error("Failed to check author for ad ID: {}", adsId, e);
-            throw new AdvertisingRetrievalException("Failed to check ad author: " + e.getMessage(), e);
+            throw new AdvertisingRetrievalException(
+                    "Failed to check ad author: " + e.getMessage(),
+                    e
+            );
         }
     }
 }
