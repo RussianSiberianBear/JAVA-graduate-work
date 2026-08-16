@@ -1,6 +1,7 @@
 package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Service
+@Slf4j
 public class AdvertisingService {
 
     private final AdvertisingRepository advertisingRepository;
@@ -57,21 +59,32 @@ public class AdvertisingService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
-        FileUploadRequest fur = new FileUploadRequest(
-                StorageDirectories.ADS,
-                file.getOriginalFilename(),
-                file.getContentType(),
-                file.getSize(),
-                file.getInputStream()
-        );
+        StoredFileInfo storedFile = null;
+        try {
+            FileUploadRequest fur = new FileUploadRequest(
+                    StorageDirectories.ADS,
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getSize(),
+                    file.getInputStream()
+            );
 
-        Advertising advertising = advertisingMapper.toEntity(properties);
-        advertising.setAuthor(user);
-        StoredFileInfo storedFile = fileService.upload(fur);
-        advertising.setImageFileId(storedFile.id());
+            Advertising advertising = advertisingMapper.toEntity(properties);
+            advertising.setAuthor(user);
+            storedFile = fileService.upload(fur);
+            advertising.setImageFileId(storedFile.id());
 
-        Advertising adsSaved = advertisingRepository.save(advertising);
-        return advertisingMapper.toResponse(adsSaved);
+            Advertising adsSaved = advertisingRepository.save(advertising);
+            return advertisingMapper.toResponse(adsSaved);
+        } catch (Exception e) {
+            try {
+                fileService.delete(storedFile.id());
+                log.info("Rolled back new ads file: {}", storedFile.id());
+            } catch (Exception ex) {
+                log.error("CRITICAL: Failed to rollback new ads file: {}. Manual cleanup required!", storedFile.id(), ex);
+            }
+            throw e;
+        }
     }
 
     @Transactional
@@ -102,7 +115,18 @@ public class AdvertisingService {
 
     @Transactional
     public void deleteAdById(Long id) {
-        advertisingRepository.deleteById(id);
+
+        Advertising ad = advertisingRepository.findById(id)
+                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+        String imageId = ad.getImageFileId();
+        try {
+            fileService.delete(imageId);
+            advertisingRepository.deleteById(id);
+        } catch (Exception e) {
+            log.error("CRITICAL: Failed to delete ad with ID: {} and imageId: {}. Manual cleanup required!", id, imageId, e);
+            throw e;
+        }
+
     }
 
     @Transactional
@@ -112,6 +136,7 @@ public class AdvertisingService {
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
         String oldImage = ad.getImageFileId();
+        StoredFileInfo storedFile = null;
         try {
             FileUploadRequest fur = new FileUploadRequest(
                     StorageDirectories.ADS,
@@ -120,10 +145,11 @@ public class AdvertisingService {
                     file.getSize(),
                     file.getInputStream()
             );
-            StoredFileInfo storedFile = fileService.replace(oldImage, fur);
+            storedFile = fileService.replace(oldImage, fur);
             ad.setImageFileId(storedFile.id());
             advertisingRepository.save(ad);
         } catch (Exception e) {
+            log.error("CRITICAL: Failed to update ad with ID: {} and imageId: {}. Manual cleanup required!", id, storedFile.id(), e);
             ad.setImageFileId(oldImage);
             advertisingRepository.save(ad);
         }

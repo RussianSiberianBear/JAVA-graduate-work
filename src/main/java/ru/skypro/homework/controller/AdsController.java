@@ -260,7 +260,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление не найдено")
     })
     @PostMapping("/{id}/comments")
-    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestPart("text") CommentRequestDto text) {
+    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestBody CommentRequestDto text) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

@@ -123,14 +123,45 @@ Alfresco должен быть доступен на порту `9090`.
 
 ```yaml
 services:
+
   alfresco:
     image: alfresco/alfresco-content-repository-community:23.1.0
+    container_name: alfresco
+    restart: unless-stopped
+
     ports:
       - "9090:8080"
+
     environment:
-      - JAVA_OPTS=-Xms512m -Xmx1024m
+      JAVA_OPTS: >-
+        -Xms512m
+        -Xmx1024m
+        -Ddb.username=alfresco
+        -Ddb.password=alfresco
+        -Ddb.url=jdbc:postgresql://host.docker.internal:5432/alfresco
+        -Ddb.driver=org.postgresql.Driver
+
     volumes:
       - alfresco_data:/usr/local/tomcat/alf_data
+
+  share:
+    image: alfresco/alfresco-share:23.1.0
+    container_name: alfresco-share
+    restart: unless-stopped
+
+    ports:
+      - "9091:8080"
+
+    environment:
+      JAVA_OPTS: >-
+        -Xms512m
+        -Xmx1024m
+
+      REPO_HOST: "alfresco"
+      REPO_PORT: "8080"
+
+    depends_on:
+      - alfresco
 
 volumes:
   alfresco_data:
