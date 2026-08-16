@@ -199,7 +199,7 @@ public class AdsController {
             @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
             @ApiResponse(responseCode = "404", description = "Картинка с заданным идентификатором не найдена")
     })
-    public ResponseEntity updateAdsImage(@PathVariable @Valid Long id, @RequestParam("file") @Valid MultipartFile file) {
+    public ResponseEntity updateAdsImage(@PathVariable @Valid Long id, @RequestParam("image") @Valid MultipartFile image) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -213,8 +213,8 @@ public class AdsController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        advertisingService.updateAdsImage(id, file);
-        return ResponseEntity.ok(file.getOriginalFilename());
+        advertisingService.updateAdsImage(id, image);
+        return ResponseEntity.ok(image.getOriginalFilename());
     }
 
     /**
@@ -325,7 +325,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
     })
     @PatchMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestPart("text") CommentRequestDto text) {
+    public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestBody CommentRequestDto text) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
