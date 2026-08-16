@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.StoredFile;
+import org.springframework.http.CacheControl;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/images")
@@ -25,8 +27,19 @@ public class ImageController {
         StoredFile storedFile = fileStorageService.get(fileId);
 
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(storedFile.info().contentType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + storedFile.info().fileName() + "\"")
+                .contentType(MediaType.parseMediaType(
+                        storedFile.info().contentType()
+                ))
+                .cacheControl(
+                        CacheControl.maxAge(1, TimeUnit.DAYS)
+                                .cachePublic()
+                )
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" +
+                                storedFile.info().fileName() +
+                                "\""
+                )
                 .body(storedFile.content());
     }
 }
