@@ -64,17 +64,38 @@ public class AlfrescoFileStorageService implements FileStorageService {
     @Override
     public StoredFileInfo replace(String fileId, FileUploadRequest request) {
         try {
-            // Читаем InputStream в byte[]
             byte[] contentBytes = request.content().readAllBytes();
 
-            client.put()
-                    .uri(API + "/{id}/content", fileId)
-                    .contentType(MediaType.parseMediaType(request.contentType()))
-                    .body(new ByteArrayResource(contentBytes))
+            MultipartBodyBuilder body = new MultipartBodyBuilder();
+            body.part(
+                    "filedata",
+                    new ByteArrayResource(contentBytes) {
+                        @Override
+                        public String getFilename() {
+                            return request.fileName();
+                        }
+                    }
+            ).contentType(MediaType.parseMediaType(request.contentType()));
+
+            body.part("name", request.fileName());
+            body.part("nodeType", "cm:content");
+            body.part("autoRename", "true");
+
+            // Используем POST с параметром overwrite
+            AlfrescoResponse response = client.post()
+                    .uri(API + "/{folderId}/children?overwrite=true", properties.folderId())
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body.build())
+                    .retrieve()
+                    .body(AlfrescoResponse.class);
+
+            // Удаляем старый файл
+            client.delete()
+                    .uri(API + "/{id}?permanent=true", fileId)
                     .retrieve()
                     .toBodilessEntity();
 
-            return getInfo(fileId);
+            return toInfo(response.entry());
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file content for replace: " + e.getMessage(), e);
         }

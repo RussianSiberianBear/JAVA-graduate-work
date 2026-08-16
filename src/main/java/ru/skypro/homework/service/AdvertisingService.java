@@ -149,7 +149,8 @@ public class AdvertisingService {
             ad.setImageFileId(storedFile.id());
             advertisingRepository.save(ad);
         } catch (Exception e) {
-            log.error("CRITICAL: Failed to update ad with ID: {} and imageId: {}. Manual cleanup required!", id, storedFile.id(), e);
+            String newFileId = storedFile != null ? storedFile.id() : "null";
+            log.error("CRITICAL: Failed to update ad with ID: {} and imageId: {}. Manual cleanup required!", id, newFileId, e);
             ad.setImageFileId(oldImage);
             advertisingRepository.save(ad);
         }
