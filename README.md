@@ -390,6 +390,7 @@ src/
         ├── controller/                         # Тесты контроллеров
         │   ├── AdsControllerTest.java
         │   ├── AuthControllerTest.java
+		│   ├── ImageControllerTest.java
         │   └── UserControllerTest.java
         ├── mapper/                             # Тесты мапперов
         │   ├── AdvertisingMapperTest.java
