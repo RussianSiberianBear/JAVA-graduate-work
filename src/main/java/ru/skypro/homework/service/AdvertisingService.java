@@ -10,9 +10,7 @@ import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
 import ru.skypro.homework.dto.CreateOrUpdateAd;
-import ru.skypro.homework.exception.AdvertisingNotFoundException;
-import ru.skypro.homework.exception.FileStorageException;
-import ru.skypro.homework.exception.UsernameNotFoundException;
+import ru.skypro.homework.exception.*;
 import ru.skypro.homework.mapper.AdvertisingMapper;
 import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.User;
@@ -49,11 +47,16 @@ public class AdvertisingService {
     }
 
     public AdvertisingAllResponseDto findAll() {
-        List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAll()
-                .stream()
-                .map(advertisingMapper::toResponse)
-                .toList();
-        return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
+        try {
+            List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAll()
+                    .stream()
+                    .map(advertisingMapper::toResponse)
+                    .toList();
+            return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
+        } catch (Exception e) {
+            log.error("Failed to find all ads", e);
+            throw new AdvertisingRetrievalException("Failed to retrieve all ads: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
@@ -80,7 +83,6 @@ public class AdvertisingService {
             return advertisingMapper.toResponse(adsSaved);
 
         } catch (FileStorageException e) {
-            // Ошибка при загрузке файла - откатываем файл если он был создан
             if (storedFile != null) {
                 try {
                     fileService.delete(storedFile.id());
@@ -90,10 +92,9 @@ public class AdvertisingService {
                 }
             }
             log.error("File storage error while creating ad for user: {}", username, e);
-            throw new RuntimeException("Failed to create ad due to file storage error: " + e.getMessage(), e);
+            throw new AdvertisingCreationException("Failed to create ad due to file storage error: " + e.getMessage(), e);
 
         } catch (Exception e) {
-            // Другие ошибки (например, ошибка БД)
             if (storedFile != null) {
                 try {
                     fileService.delete(storedFile.id());
@@ -103,32 +104,53 @@ public class AdvertisingService {
                 }
             }
             log.error("Failed to create ad for user: {}", username, e);
-            throw e;
+            throw new AdvertisingCreationException("Failed to create ad: " + e.getMessage(), e);
         }
     }
 
     @Transactional
     public AdvertisingOneResponseDto updateById(Long id, CreateOrUpdateAd properties) {
-        Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+        try {
+            Advertising ad = advertisingRepository.findById(id)
+                    .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
-        advertisingMapper.updateEntity(properties, ad);
-        Advertising adsSaved = advertisingRepository.save(ad);
-        return advertisingMapper.toResponse(adsSaved);
+            advertisingMapper.updateEntity(properties, ad);
+            Advertising adsSaved = advertisingRepository.save(ad);
+            return advertisingMapper.toResponse(adsSaved);
+
+        } catch (AdvertisingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to update ad with ID: {}", id, e);
+            throw new AdvertisingUpdateException("Failed to update ad with ID: " + id + ": " + e.getMessage(), e);
+        }
     }
 
     public AdvertisingAllResponseDto findAllByUserId(Long userId) {
-        List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAllByAuthorId(userId)
-                .stream()
-                .map(advertisingMapper::toResponse)
-                .toList();
-        return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
+        try {
+            List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAllByAuthorId(userId)
+                    .stream()
+                    .map(advertisingMapper::toResponse)
+                    .toList();
+            return new AdvertisingAllResponseDto(adsListDto.size(), adsListDto);
+        } catch (Exception e) {
+            log.error("Failed to find ads for user ID: {}", userId, e);
+            throw new AdvertisingRetrievalException("Failed to retrieve ads for user: " + e.getMessage(), e);
+        }
     }
 
     public AdvertisingWithAuthorDto getAdById(Long id) {
-        Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
-        return advertisingMapper.toResponseWithAuthor(ad);
+        try {
+            Advertising ad = advertisingRepository.findById(id)
+                    .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+            return advertisingMapper.toResponseWithAuthor(ad);
+
+        } catch (AdvertisingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to get ad with ID: {}", id, e);
+            throw new AdvertisingRetrievalException("Failed to retrieve ad with ID: " + id + ": " + e.getMessage(), e);
+        }
     }
 
     @Transactional
@@ -139,7 +161,6 @@ public class AdvertisingService {
         String imageId = ad.getImageFileId();
 
         try {
-            // Сначала удаляем файл, потом запись в БД
             if (imageId != null && !imageId.isEmpty()) {
                 fileService.delete(imageId);
                 log.info("Successfully deleted file for ad ID: {}, fileId: {}", id, imageId);
@@ -149,10 +170,10 @@ public class AdvertisingService {
 
         } catch (FileStorageException e) {
             log.error("File storage error while deleting ad with ID: {} and imageId: {}. Manual cleanup required!", id, imageId, e);
-            throw new RuntimeException("Failed to delete ad due to file storage error: " + e.getMessage(), e);
+            throw new AdvertisingDeletionException("Failed to delete ad due to file storage error: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Unexpected error while deleting ad with ID: {} and imageId: {}", id, imageId, e);
-            throw e;
+            throw new AdvertisingDeletionException("Failed to delete ad: " + e.getMessage(), e);
         }
     }
 
@@ -173,7 +194,6 @@ public class AdvertisingService {
                     file.getInputStream()
             );
 
-            // Заменяем файл - внутри replace() старый файл удаляется
             storedFile = fileService.replace(oldImage, fur);
             ad.setImageFileId(storedFile.id());
             advertisingRepository.save(ad);
@@ -182,44 +202,45 @@ public class AdvertisingService {
                     id, oldImage, storedFile.id());
 
         } catch (FileStorageException e) {
-            // Ошибка при работе с файловым хранилищем
             String newFileId = storedFile != null ? storedFile.id() : "null";
             log.error("File storage error while updating image for ad ID: {}. New fileId: {}, Old fileId: {}",
                     id, newFileId, oldImage, e);
 
-            // Возвращаем старый ID в БД
             ad.setImageFileId(oldImage);
             advertisingRepository.save(ad);
 
-            throw new RuntimeException("Failed to update ad image due to file storage error: " + e.getMessage(), e);
+            throw new AdvertisingImageUpdateException("Failed to update ad image due to file storage error: " + e.getMessage(), e);
 
         } catch (IOException e) {
-            // Ошибка при чтении файла
-            String newFileId = storedFile != null ? storedFile.id() : "null";
-            log.error("IO error while updating image for ad ID: {}. New fileId: {}", id, newFileId, e);
+            log.error("IO error while updating image for ad ID: {}", id, e);
 
-            // Возвращаем старый ID в БД
             ad.setImageFileId(oldImage);
             advertisingRepository.save(ad);
 
-            throw new RuntimeException("Failed to read file content for ad image update: " + e.getMessage(), e);
+            throw new AdvertisingImageUpdateException("Failed to read file content for ad image update: " + e.getMessage(), e);
 
         } catch (Exception e) {
-            // Другие ошибки
             String newFileId = storedFile != null ? storedFile.id() : "null";
             log.error("Unexpected error while updating image for ad ID: {}. New fileId: {}", id, newFileId, e);
 
-            // Возвращаем старый ID в БД
             ad.setImageFileId(oldImage);
             advertisingRepository.save(ad);
 
-            throw e;
+            throw new AdvertisingImageUpdateException("Unexpected error during ad image update: " + e.getMessage(), e);
         }
     }
 
     public boolean isAnotherAuthor(Long adsId) {
-        Advertising ad = advertisingRepository.findById(adsId)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adsId)));
-        return !ad.getAuthor().getId().equals(securityHelper.getCurrentUserId());
+        try {
+            Advertising ad = advertisingRepository.findById(adsId)
+                    .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(adsId)));
+            return !ad.getAuthor().getId().equals(securityHelper.getCurrentUserId());
+
+        } catch (AdvertisingNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to check author for ad ID: {}", adsId, e);
+            throw new AdvertisingRetrievalException("Failed to check ad author: " + e.getMessage(), e);
+        }
     }
 }
