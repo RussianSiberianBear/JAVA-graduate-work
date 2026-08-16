@@ -6,8 +6,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
-import ru.skypro.homework.model.Advertising;
-import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.service.storage.FileStorageService;
@@ -22,7 +20,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AlfrescoCleanupJob {
 
-    private static final String API = "/api/-default-/public/alfresco/versions/1/nodes";
+    private static final String API =
+            "/api/-default-/public/alfresco/versions/1/nodes";
+
+    private static final int PAGE_SIZE = 100;
 
     private final RestClient client;
     private final AlfrescoProperties properties;
@@ -30,6 +31,10 @@ public class AlfrescoCleanupJob {
     private final AdvertisingRepository advertisingRepository;
     private final FileStorageService fileService;
 
+    /**
+     * Ежедневная очистка файлов Alfresco,
+     * которые больше не используются приложением.
+     */
     @Scheduled(cron = "0 0 3 * * *")
     public void cleanupOrphanedFiles() {
         log.info("Starting Alfresco cleanup job...");
@@ -39,93 +44,140 @@ public class AlfrescoCleanupJob {
             List<AlfrescoFileInfo> allFiles = getAllFilesFromAlfresco();
 
             int deletedCount = 0;
+
             for (AlfrescoFileInfo fileInfo : allFiles) {
-                String fileId = fileInfo.getId();
-                String fileName = fileInfo.getName();
 
                 if (fileInfo.isFolder()) {
                     continue;
                 }
 
-                if (!usedFileIds.contains(fileId)) {
-                    try {
-                        fileService.delete(fileId);
-                        deletedCount++;
-                        log.debug("Deleted orphaned file: {} (ID: {})", fileName, fileId);
-                    } catch (Exception e) {
-                        log.error("Failed to delete orphaned file: {} (ID: {})", fileName, fileId, e);
-                    }
+                String fileId = fileInfo.getId();
+
+                if (!StringUtils.hasText(fileId)) {
+                    continue;
+                }
+
+                if (usedFileIds.contains(fileId)) {
+                    continue;
+                }
+
+                try {
+                    fileService.delete(fileId);
+                    deletedCount++;
+
+                    log.debug(
+                            "Deleted orphaned file: {} (ID: {})",
+                            fileInfo.getName(),
+                            fileId
+                    );
+
+                } catch (Exception e) {
+                    log.error(
+                            "Failed to delete orphaned file: {} (ID: {})",
+                            fileInfo.getName(),
+                            fileId,
+                            e
+                    );
                 }
             }
 
-            log.info("Cleanup job completed. Deleted {} orphaned files.", deletedCount);
+            log.info(
+                    "Cleanup job completed. Found {} files, {} files are used, deleted {} orphaned files.",
+                    allFiles.size(),
+                    usedFileIds.size(),
+                    deletedCount
+            );
 
         } catch (Exception e) {
             log.error("Cleanup job failed", e);
         }
     }
 
+    /**
+     * Получает только идентификаторы файлов,
+     * используемых пользователями и объявлениями.
+     *
+     * Полные сущности User и Advertising
+     * из базы данных не загружаются.
+     */
     private Set<String> getUsedFileIds() {
         Set<String> usedFileIds = new HashSet<>();
 
-        List<User> users = userRepository.findAll();
-        for (User user : users) {
-            if (StringUtils.hasText(user.getAvatarFileId())) {
-                usedFileIds.add(user.getAvatarFileId());
-            }
-        }
+        userRepository.findAllAvatarFileIds().stream()
+                .filter(StringUtils::hasText)
+                .forEach(usedFileIds::add);
 
-        List<Advertising> advertisements = advertisingRepository.findAll();
-        for (Advertising ad : advertisements) {
-            if (StringUtils.hasText(ad.getImageFileId())) {
-                usedFileIds.add(ad.getImageFileId());
-            }
-        }
+        advertisingRepository.findAllImageFileIds().stream()
+                .filter(StringUtils::hasText)
+                .forEach(usedFileIds::add);
 
-        log.debug("Found {} used file IDs in database", usedFileIds.size());
+        log.debug(
+                "Found {} used file IDs in database",
+                usedFileIds.size()
+        );
+
         return usedFileIds;
     }
 
+    /**
+     * Получает содержимое целевой папки Alfresco
+     * постранично через Alfresco REST API.
+     */
     private List<AlfrescoFileInfo> getAllFilesFromAlfresco() {
         List<AlfrescoFileInfo> allFiles = new ArrayList<>();
 
-        try {
-            String folderId = properties.folderId();
-            int skipCount = 0;
-            int maxItems = 100;
-            boolean hasMoreItems = true;
+        String folderId = properties.folderId();
+        int skipCount = 0;
+        boolean hasMoreItems = true;
 
-            while (hasMoreItems) {
-                String uri = API + "/{folderId}/children?skipCount={skipCount}&maxItems={maxItems}";
+        while (hasMoreItems) {
 
-                AlfrescoChildrenResponse response = client.get()
-                        .uri(uri, folderId, skipCount, maxItems)
-                        .retrieve()
-                        .body(AlfrescoChildrenResponse.class);
+            String uri =
+                    API + "/{folderId}/children"
+                            + "?skipCount={skipCount}"
+                            + "&maxItems={maxItems}";
 
-                if (response != null && response.getList() != null) {
-                    for (AlfrescoChildrenResponse.Entry entry : response.getList().getEntries()) {
-                        AlfrescoChildrenResponse.AlfrescoChildrenEntry node = entry.getEntry();
-                        AlfrescoFileInfo fileInfo = new AlfrescoFileInfo(
+            AlfrescoChildrenResponse response = client.get()
+                    .uri(
+                            uri,
+                            folderId,
+                            skipCount,
+                            PAGE_SIZE
+                    )
+                    .retrieve()
+                    .body(AlfrescoChildrenResponse.class);
+
+            if (response == null || response.getList() == null) {
+                break;
+            }
+
+            for (AlfrescoChildrenResponse.Entry entry
+                    : response.getList().getEntries()) {
+
+                AlfrescoChildrenResponse.AlfrescoChildrenEntry node =
+                        entry.getEntry();
+
+                allFiles.add(
+                        new AlfrescoFileInfo(
                                 node.getId(),
                                 node.getName(),
                                 node.isFolder()
-                        );
-                        allFiles.add(fileInfo);
-                    }
-
-                    hasMoreItems = response.getList().getPagination().isHasMoreItems();
-                    skipCount += maxItems;
-                } else {
-                    hasMoreItems = false;
-                }
+                        )
+                );
             }
 
-            log.info("Found {} files in Alfresco folder", allFiles.size());
+            hasMoreItems =
+                    response.getList()
+                            .getPagination()
+                            .isHasMoreItems();
 
-        } catch (Exception e) {
-            log.error("Failed to get files from Alfresco", e);
+            skipCount += PAGE_SIZE;
         }
+
+        log.info(
+                "Found {} files in Alfresco folder",
+                allFiles.size()
+        );
 
         return allFiles;
     }
