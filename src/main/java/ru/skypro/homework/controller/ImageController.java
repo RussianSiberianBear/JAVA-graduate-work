@@ -1,5 +1,6 @@
 package ru.skypro.homework.controller;
 
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.StoredFile;
-import org.springframework.http.CacheControl;
+
 import java.util.concurrent.TimeUnit;
 
 @RestController
