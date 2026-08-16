@@ -144,7 +144,7 @@ public class AdsController {
     })
     @PatchMapping("/{id}")
     @Transactional
-    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestPart("properties") CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
+    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestBody CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
