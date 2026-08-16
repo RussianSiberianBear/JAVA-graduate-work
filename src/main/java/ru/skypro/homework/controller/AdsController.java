@@ -144,7 +144,7 @@ public class AdsController {
     })
     @PatchMapping("/{id}")
     @Transactional
-    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestPart("properties") CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
+    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestBody CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -325,7 +325,7 @@ public class AdsController {
             @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
     })
     @PatchMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestPart("text") CommentRequestDto text) {
+    public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestBody CommentRequestDto text) {
 
         if (!securityHelper.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
