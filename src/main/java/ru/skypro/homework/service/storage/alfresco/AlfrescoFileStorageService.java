@@ -7,6 +7,7 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import ru.skypro.homework.exception.FileStorageException;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFile;
@@ -57,9 +58,18 @@ public class AlfrescoFileStorageService implements FileStorageService {
                     .retrieve()
                     .body(AlfrescoResponse.class);
 
+            if (response == null || response.entry() == null) {
+                throw new FileStorageException("Failed to upload file: empty response from Alfresco");
+            }
+
             return toInfo(response.entry());
+
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read file content for upload: " + e.getMessage(), e);
+            throw new FileStorageException("Failed to read file content for upload: " + e.getMessage(), e);
+        } catch (HttpClientErrorException e) {
+            throw new FileStorageException("Failed to upload file to Alfresco: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new FileStorageException("Unexpected error during file upload: " + e.getMessage(), e);
         }
     }
 
@@ -91,6 +101,10 @@ public class AlfrescoFileStorageService implements FileStorageService {
                     .retrieve()
                     .body(AlfrescoResponse.class);
 
+            if (response == null || response.entry() == null) {
+                throw new FileStorageException("Failed to replace file: empty response from Alfresco for fileId: " + fileId);
+            }
+
             String newFileId = response.entry().id();
 
             // 2. Если новый файл успешно загружен - удаляем старый
@@ -106,50 +120,89 @@ public class AlfrescoFileStorageService implements FileStorageService {
                             .uri(API + "/{id}?permanent=true", newFileId)
                             .retrieve()
                             .toBodilessEntity();
+                    log.info("Rolled back new file after old file deletion failed: {}", newFileId);
                 } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to delete new file after old file deletion failed: {}", newFileId, ex);
+                    log.error("CRITICAL: Failed to delete new file after old file deletion failed: {}. Manual cleanup required!", newFileId, ex);
                 }
-                throw new RuntimeException("Failed to delete old file after uploading new one", e);
+                throw new FileStorageException("Failed to delete old file after uploading new one for fileId: " + fileId, e);
             }
 
             return toInfo(response.entry());
 
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read file content for replace: " + e.getMessage(), e);
+            throw new FileStorageException("Failed to read file content for replace: " + e.getMessage(), e);
+        } catch (HttpClientErrorException e) {
+            throw new FileStorageException("Failed to replace file in Alfresco: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new FileStorageException("Unexpected error during file replace: " + e.getMessage(), e);
         }
     }
 
     @Override
     public StoredFileInfo getInfo(String fileId) {
+        try {
+            AlfrescoResponse response = client.get()
+                    .uri(API + "/{id}", fileId)
+                    .retrieve()
+                    .body(AlfrescoResponse.class);
 
-        AlfrescoResponse response = client.get()
-                .uri(API + "/{id}", fileId)
-                .retrieve()
-                .body(AlfrescoResponse.class);
+            if (response == null || response.entry() == null) {
+                throw new FileStorageException("Failed to get file info: empty response from Alfresco for fileId: " + fileId);
+            }
 
-        return toInfo(response.entry());
+            return toInfo(response.entry());
+
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new FileStorageException("File not found: " + fileId, e);
+        } catch (HttpClientErrorException e) {
+            throw new FileStorageException("Failed to get file info from Alfresco: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new FileStorageException("Unexpected error during get file info: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public StoredFile get(String fileId) {
+        try {
+            StoredFileInfo info = getInfo(fileId);
 
-        StoredFileInfo info = getInfo(fileId);
+            byte[] content = client.get()
+                    .uri(API + "/{id}/content", fileId)
+                    .retrieve()
+                    .body(byte[].class);
 
-        byte[] content = client.get()
-                .uri(API + "/{id}/content", fileId)
-                .retrieve()
-                .body(byte[].class);
+            if (content == null) {
+                throw new FileStorageException("Failed to get file content: empty response from Alfresco for fileId: " + fileId);
+            }
 
-        return new StoredFile(info, content);
+            return new StoredFile(info, content);
+
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new FileStorageException("File not found: " + fileId, e);
+        } catch (HttpClientErrorException e) {
+            throw new FileStorageException("Failed to get file from Alfresco: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new FileStorageException("Unexpected error during get file: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public void delete(String fileId) {
+        try {
+            client.delete()
+                    .uri(API + "/{id}?permanent=true", fileId)
+                    .retrieve()
+                    .toBodilessEntity();
 
-        client.delete()
-                .uri(API + "/{id}?permanent=true", fileId)
-                .retrieve()
-                .toBodilessEntity();
+            log.info("Successfully deleted file: {}", fileId);
+
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new FileStorageException("File not found for deletion: " + fileId, e);
+        } catch (HttpClientErrorException e) {
+            throw new FileStorageException("Failed to delete file from Alfresco: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new FileStorageException("Unexpected error during file deletion: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -157,14 +210,21 @@ public class AlfrescoFileStorageService implements FileStorageService {
         try {
             getInfo(fileId);
             return true;
-        } catch (HttpClientErrorException.NotFound e) {
-            return false;
+        } catch (FileStorageException e) {
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                return false;
+            }
+            throw e;
         }
     }
 
-    private StoredFileInfo toInfo(
-            AlfrescoResponse.Entry entry
-    ) {
+    private StoredFileInfo toInfo(AlfrescoResponse.Entry entry) {
+        if (entry == null) {
+            throw new FileStorageException("Cannot convert null entry to StoredFileInfo");
+        }
+        if (entry.content() == null) {
+            throw new FileStorageException("File content metadata is null for entry: " + entry.id());
+        }
         return new StoredFileInfo(
                 entry.id(),
                 entry.name(),

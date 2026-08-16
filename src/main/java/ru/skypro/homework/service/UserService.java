@@ -10,6 +10,7 @@ import ru.skypro.homework.config.StorageDirectories;
 import ru.skypro.homework.constants.ExceptionMessages;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
+import ru.skypro.homework.exception.FileStorageException;
 import ru.skypro.homework.exception.InvalidPasswordException;
 import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.mapper.UserMapper;
@@ -120,7 +121,6 @@ public class UserService {
      */
     @Transactional
     public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
-
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
@@ -151,8 +151,19 @@ public class UserService {
             userRepository.save(user);
             log.info("Avatar updated successfully for user: {}, fileId: {}", username, newFileId);
 
-        } catch (Exception e) {
+        } catch (FileStorageException e) {
             // Откатываем только если был создан новый файл
+            if (newFileId != null) {
+                try {
+                    fileService.delete(newFileId);
+                    log.info("Rolled back new avatar file: {}", newFileId);
+                } catch (Exception ex) {
+                    log.error("CRITICAL: Failed to rollback new avatar file: {}. Manual cleanup required!", newFileId, ex);
+                }
+            }
+            log.error("File storage error while updating avatar for user: {}", username, e);
+            throw e; // или обернуть в свое исключение уровня сервиса
+        } catch (Exception e) {
             if (newFileId != null) {
                 try {
                     fileService.delete(newFileId);
