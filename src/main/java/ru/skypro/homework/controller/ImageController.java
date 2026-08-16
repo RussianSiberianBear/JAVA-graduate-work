@@ -31,7 +31,7 @@ public class ImageController {
                         storedFile.info().contentType()
                 ))
                 .cacheControl(
-                        CacheControl.maxAge(1, TimeUnit.DAYS)
+                        CacheControl.maxAge(7, TimeUnit.DAYS)
                                 .cachePublic()
                 )
                 .header(
