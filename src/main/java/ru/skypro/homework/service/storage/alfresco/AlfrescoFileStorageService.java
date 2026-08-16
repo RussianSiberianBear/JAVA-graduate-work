@@ -1,5 +1,6 @@
 package ru.skypro.homework.service.storage.alfresco;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
@@ -14,6 +15,7 @@ import ru.skypro.homework.service.storage.StoredFileInfo;
 import java.io.IOException;
 
 @Service
+@Slf4j
 public class AlfrescoFileStorageService implements FileStorageService {
 
     private static final String API = "/api/-default-/public/alfresco/versions/1/nodes";
@@ -64,17 +66,54 @@ public class AlfrescoFileStorageService implements FileStorageService {
     @Override
     public StoredFileInfo replace(String fileId, FileUploadRequest request) {
         try {
-            // Читаем InputStream в byte[]
             byte[] contentBytes = request.content().readAllBytes();
 
-            client.put()
-                    .uri(API + "/{id}/content", fileId)
-                    .contentType(MediaType.parseMediaType(request.contentType()))
-                    .body(new ByteArrayResource(contentBytes))
-                    .retrieve()
-                    .toBodilessEntity();
+            // 1. Сначала загружаем новый файл
+            MultipartBodyBuilder body = new MultipartBodyBuilder();
+            body.part(
+                    "filedata",
+                    new ByteArrayResource(contentBytes) {
+                        @Override
+                        public String getFilename() {
+                            return request.fileName();
+                        }
+                    }
+            ).contentType(MediaType.parseMediaType(request.contentType()));
 
-            return getInfo(fileId);
+            body.part("name", request.fileName());
+            body.part("nodeType", "cm:content");
+            body.part("autoRename", "true");
+
+            AlfrescoResponse response = client.post()
+                    .uri(API + "/{folderId}/children?overwrite=true", properties.folderId())
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body.build())
+                    .retrieve()
+                    .body(AlfrescoResponse.class);
+
+            String newFileId = response.entry().id();
+
+            // 2. Если новый файл успешно загружен - удаляем старый
+            try {
+                client.delete()
+                        .uri(API + "/{id}?permanent=true", fileId)
+                        .retrieve()
+                        .toBodilessEntity();
+            } catch (Exception e) {
+                // Если не удалось удалить старый файл - удаляем новый и пробрасываем ошибку
+                try {
+                    client.delete()
+                            .uri(API + "/{id}?permanent=true", newFileId)
+                            .retrieve()
+                            .toBodilessEntity();
+                } catch (Exception ex) {
+                    log.error("CRITICAL: Failed to delete new file after old file deletion failed: {}", newFileId, ex);
+                }
+                throw new RuntimeException("Failed to delete old file after uploading new one", e);
+            }
+
+            return toInfo(response.entry());
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file content for replace: " + e.getMessage(), e);
         }

@@ -125,7 +125,6 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
         String oldFileId = user.getAvatarFileId();
-        boolean isNewFile = !StringUtils.hasText(oldFileId);
         String newFileId = null;
 
         try {
@@ -138,14 +137,14 @@ public class UserService {
             );
 
             StoredFileInfo storedFile;
-            if (isNewFile) {
+            if (!StringUtils.hasText(oldFileId)) {
                 storedFile = fileService.upload(fur);
                 newFileId = storedFile.id();
                 log.info("Uploaded new avatar for user: {}, fileId: {}", username, newFileId);
             } else {
                 storedFile = fileService.replace(oldFileId, fur);
-                newFileId = storedFile.id(); // ID должен совпадать с oldFileId
-                log.info("Replaced avatar for user: {}, fileId: {}", username, newFileId);
+                newFileId = storedFile.id();
+                log.info("Replaced avatar for user: {}, oldFileId: {}, newFileId: {}", username, oldFileId, newFileId);
             }
 
             user.setAvatarFileId(newFileId);
@@ -153,8 +152,8 @@ public class UserService {
             log.info("Avatar updated successfully for user: {}, fileId: {}", username, newFileId);
 
         } catch (Exception e) {
-            // Откатываем ТОЛЬКО для НОВЫХ файлов
-            if (isNewFile && newFileId != null) {
+            // Откатываем только если был создан новый файл
+            if (newFileId != null) {
                 try {
                     fileService.delete(newFileId);
                     log.info("Rolled back new avatar file: {}", newFileId);
@@ -162,7 +161,6 @@ public class UserService {
                     log.error("CRITICAL: Failed to rollback new avatar file: {}. Manual cleanup required!", newFileId, ex);
                 }
             }
-            // Для replace() ничего не удаляем, т.к. ID не изменился
             log.error("Failed to update avatar for user: {}", username, e);
             throw e;
         }
