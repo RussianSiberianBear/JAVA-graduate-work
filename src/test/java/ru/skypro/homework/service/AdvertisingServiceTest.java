@@ -5,14 +5,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.constants.ExceptionMessages;
 import ru.skypro.homework.dto.AdvertisingAllResponseDto;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
 import ru.skypro.homework.dto.CreateOrUpdateAd;
+import ru.skypro.homework.exception.AdvertisingCreationException;
+import ru.skypro.homework.exception.AdvertisingImageUpdateException;
 import ru.skypro.homework.exception.AdvertisingNotFoundException;
-import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.mapper.AdvertisingMapper;
 import ru.skypro.homework.model.Advertising;
 import ru.skypro.homework.model.User;
@@ -207,7 +209,9 @@ class AdvertisingServiceTest {
         verify(userRepository, times(1)).findByEmail(USER_EMAIL);
         verify(advertisingMapper, times(1)).toEntity(properties);
         verify(fileStorageService, times(1)).upload(any(FileUploadRequest.class));
-        verify(advertisingRepository, times(1)).save(ad);
+
+        // Исправлено: save вызывается 2 раза (создание + обновление с файлом)
+        verify(advertisingRepository, times(2)).save(ad);
         verify(advertisingMapper, times(1)).toResponse(ad);
     }
 
@@ -232,6 +236,7 @@ class AdvertisingServiceTest {
         CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
         User user = createDefaultUser();
         Advertising ad = createDefaultAdvertising();
+        ad.setId(1L);
 
         when(multipartFile.getOriginalFilename()).thenReturn(FILE_NAME);
         when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
@@ -240,17 +245,31 @@ class AdvertisingServiceTest {
 
         when(userRepository.findByEmail(USER_EMAIL)).thenReturn(Optional.of(user));
         when(advertisingMapper.toEntity(properties)).thenReturn(ad);
+
+        // Мокаем сохранение в БД (первый save)
+        when(advertisingRepository.save(ad)).thenReturn(ad);
+
+        // Мокаем ошибку при загрузке файла
         when(fileStorageService.upload(any(FileUploadRequest.class)))
                 .thenThrow(new RuntimeException("File upload failed"));
 
+        // Ожидаем исключение
         assertThatThrownBy(() -> advertisingService.createAds(USER_EMAIL, properties, multipartFile))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("File upload failed");
+                .isInstanceOf(AdvertisingCreationException.class)
+                .hasMessage("Failed to create ad: File upload failed");
 
+        // Проверяем вызовы
         verify(userRepository, times(1)).findByEmail(USER_EMAIL);
         verify(advertisingMapper, times(1)).toEntity(properties);
+
+        // save был вызван ДЛЯ СОЗДАНИЯ записи (это правильно!)
+        verify(advertisingRepository, times(1)).save(ad);
+
+        // Проверяем, что был вызов upload
         verify(fileStorageService, times(1)).upload(any(FileUploadRequest.class));
-        verify(advertisingRepository, never()).save(ad);
+
+        // Проверяем, что была попытка удалить запись из БД (rollback)
+        verify(advertisingRepository, times(1)).deleteById(ad.getId());
     }
 
     // ===== ТЕСТЫ ДЛЯ updateById =====
@@ -347,7 +366,7 @@ class AdvertisingServiceTest {
         Advertising ad = createDefaultAdvertising();
         AdvertisingWithAuthorDto expected = createDefaultAdvertisingWithAuthorDto();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
+        when(advertisingRepository.findWithAuthorById(adId)).thenReturn(Optional.of(ad));
         when(advertisingMapper.toResponseWithAuthor(ad)).thenReturn(expected);
 
         AdvertisingWithAuthorDto result = advertisingService.getAdById(adId);
@@ -355,7 +374,7 @@ class AdvertisingServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.pk()).isEqualTo(AD_ID);
 
-        verify(advertisingRepository, times(1)).findById(adId);
+        verify(advertisingRepository, times(1)).findWithAuthorById(adId);
         verify(advertisingMapper, times(1)).toResponseWithAuthor(ad);
     }
 
@@ -363,13 +382,13 @@ class AdvertisingServiceTest {
     void getAdById_AdNotFound_Test() {
         Long adId = NON_EXISTENT_AD_ID;
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.empty());
+        when(advertisingRepository.findWithAuthorById(adId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> advertisingService.getAdById(adId))
                 .isInstanceOf(AdvertisingNotFoundException.class)
                 .hasMessage(ExceptionMessages.formatAdNotFound(adId));
 
-        verify(advertisingRepository, times(1)).findById(adId);
+        verify(advertisingRepository, times(1)).findWithAuthorById(adId);
         verify(advertisingMapper, never()).toResponseWithAuthor(any());
     }
 
@@ -378,7 +397,9 @@ class AdvertisingServiceTest {
     @Test
     void deleteAdById_Success_Test() {
         Long adId = AD_ID;
+        Advertising ad = createDefaultAdvertising();
 
+        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
         doNothing().when(advertisingRepository).deleteById(adId);
 
         advertisingService.deleteAdById(adId);
@@ -439,14 +460,19 @@ class AdvertisingServiceTest {
         when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
         when(fileStorageService.replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class)))
                 .thenThrow(new RuntimeException("Replace failed"));
-        when(advertisingRepository.save(ad)).thenReturn(ad);
 
-        advertisingService.updateAdsImage(adId, multipartFile);
+        // Ожидаем, что метод выбросит исключение
+        assertThatThrownBy(() -> advertisingService.updateAdsImage(adId, multipartFile))
+                .isInstanceOf(AdvertisingImageUpdateException.class)
+                .hasMessage("Failed to update ad image: Replace failed");
 
         verify(advertisingRepository, times(1)).findById(adId);
         verify(fileStorageService, times(1)).replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class));
-        // В методе save вызывается 1 раз (после восстановления старого imageId)
-        verify(advertisingRepository, times(1)).save(ad);
+
+        // save НЕ вызывается (так как ошибка произошла до сохранения)
+        verify(advertisingRepository, never()).save(ad);
+
+        // ID не изменился (объект не сохранялся в БД)
         assertThat(ad.getImageFileId()).isEqualTo(oldImageId);
     }
 
@@ -454,21 +480,32 @@ class AdvertisingServiceTest {
     void updateAdsImage_WhenFileStorageThrowsRuntimeException_Test() throws IOException {
         Long adId = AD_ID;
         Advertising ad = createDefaultAdvertising();
+        String oldFileId = ad.getImageFileId();
 
         when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
         when(multipartFile.getOriginalFilename()).thenReturn("new_image.jpg");
         when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
         when(multipartFile.getSize()).thenReturn(FILE_SIZE);
         when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
+
+        // Мокаем, что replace выбрасывает исключение
         when(fileStorageService.replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class)))
                 .thenThrow(new RuntimeException("File storage error"));
 
-        advertisingService.updateAdsImage(adId, multipartFile);
+        // Ожидаем, что метод выбросит AdvertisingImageUpdateException
+        assertThatThrownBy(() -> advertisingService.updateAdsImage(adId, multipartFile))
+                .isInstanceOf(AdvertisingImageUpdateException.class)
+                .hasMessage("Failed to update ad image: File storage error");
 
+        // Проверяем вызовы
         verify(advertisingRepository, times(1)).findById(adId);
         verify(fileStorageService, times(1)).replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class));
-        verify(advertisingRepository, times(1)).save(ad);
-        assertThat(ad.getImageFileId()).isEqualTo(IMAGE_FILE_ID);
+
+        // save НЕ вызывается (так как ошибка была до сохранения)
+        verify(advertisingRepository, never()).save(ad);
+
+        // ID не изменился (объект не сохранялся в БД)
+        assertThat(ad.getImageFileId()).isEqualTo(oldFileId);
     }
 
     // ===== ТЕСТЫ ДЛЯ isAnotherAuthor =====

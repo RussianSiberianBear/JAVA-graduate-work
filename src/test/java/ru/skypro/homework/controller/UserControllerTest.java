@@ -2,10 +2,11 @@ package ru.skypro.homework.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,7 +15,6 @@ import ru.skypro.homework.dto.SetPasswordRequestDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
 import ru.skypro.homework.exception.InvalidPasswordException;
-import ru.skypro.homework.exception.UsernameNotFoundException;
 import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.UserService;
 import tools.jackson.databind.ObjectMapper;
@@ -22,7 +22,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,6 +44,9 @@ class UserControllerTest {
 
     @MockitoBean
     private SecurityHelper securityHelper;
+
+    //  @MockitoBean
+    //   private UserDetailsService userDetailsService;
 
     // ===== POST /users/set_password =====
 

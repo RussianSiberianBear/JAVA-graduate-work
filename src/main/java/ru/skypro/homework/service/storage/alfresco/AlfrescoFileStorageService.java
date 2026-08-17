@@ -78,7 +78,7 @@ public class AlfrescoFileStorageService implements FileStorageService {
         try {
             byte[] contentBytes = request.content().readAllBytes();
 
-            // 1. Сначала загружаем новый файл
+            // 1. Сначала загружаем НОВЫЙ файл (не удаляя старый)
             MultipartBodyBuilder body = new MultipartBodyBuilder();
             body.part(
                     "filedata",
@@ -95,38 +95,18 @@ public class AlfrescoFileStorageService implements FileStorageService {
             body.part("autoRename", "true");
 
             AlfrescoResponse response = client.post()
-                    .uri(API + "/{folderId}/children?overwrite=true", properties.folderId())
+                    .uri(API + "/{folderId}/children", properties.folderId()) // Убираем overwrite
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body.build())
                     .retrieve()
                     .body(AlfrescoResponse.class);
 
             if (response == null || response.entry() == null) {
-                throw new FileStorageException("Failed to replace file: empty response from Alfresco for fileId: " + fileId);
+                throw new FileStorageException("Failed to replace file: empty response from Alfresco");
             }
 
-            String newFileId = response.entry().id();
-
-            // 2. Если новый файл успешно загружен - удаляем старый
-            try {
-                client.delete()
-                        .uri(API + "/{id}?permanent=true", fileId)
-                        .retrieve()
-                        .toBodilessEntity();
-            } catch (Exception e) {
-                // Если не удалось удалить старый файл - удаляем новый и пробрасываем ошибку
-                try {
-                    client.delete()
-                            .uri(API + "/{id}?permanent=true", newFileId)
-                            .retrieve()
-                            .toBodilessEntity();
-                    log.info("Rolled back new file after old file deletion failed: {}", newFileId);
-                } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to delete new file after old file deletion failed: {}. Manual cleanup required!", newFileId, ex);
-                }
-                throw new FileStorageException("Failed to delete old file after uploading new one for fileId: " + fileId, e);
-            }
-
+            // 2. Возвращаем информацию о НОВОМ файле
+            // Старый файл НЕ УДАЛЯЕМ здесь!
             return toInfo(response.entry());
 
         } catch (IOException e) {
