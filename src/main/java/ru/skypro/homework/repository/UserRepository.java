@@ -14,10 +14,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPhone(String phone);
 
     @Query("""
-       select u.avatarFileId
-       from User u
-       where u.avatarFileId is not null
-       """)
+            select u.avatarFileId
+            from User u
+            where u.avatarFileId is not null
+            """)
     List<String> findAllAvatarFileIds();
 
 }

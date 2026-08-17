@@ -2,6 +2,7 @@ package ru.skypro.homework.service;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
@@ -64,8 +65,15 @@ public class AdvertisingService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
+        // 1. Сохраняем объявление БЕЗ файла
+        Advertising advertising = advertisingMapper.toEntity(properties);
+        advertising.setAuthor(user);
+        advertising.setImageFileId(null);
+        Advertising adsSaved = advertisingRepository.save(advertising);
+
         StoredFileInfo storedFile = null;
         try {
+            // 2. Загружаем файл
             FileUploadRequest fur = new FileUploadRequest(
                     StorageDirectories.ADS,
                     file.getOriginalFilename(),
@@ -74,35 +82,35 @@ public class AdvertisingService {
                     file.getInputStream()
             );
 
-            Advertising advertising = advertisingMapper.toEntity(properties);
-            advertising.setAuthor(user);
             storedFile = fileService.upload(fur);
-            advertising.setImageFileId(storedFile.id());
 
-            Advertising adsSaved = advertisingRepository.save(advertising);
-            return advertisingMapper.toResponse(adsSaved);
+            // 3. Обновляем запись с ID файла
+            adsSaved.setImageFileId(storedFile.id());
+            Advertising updated = advertisingRepository.save(adsSaved);
 
-        } catch (FileStorageException e) {
-            if (storedFile != null) {
-                try {
-                    fileService.delete(storedFile.id());
-                    log.info("Rolled back new ads file after FileStorageException: {}", storedFile.id());
-                } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback new ads file: {}. Manual cleanup required!", storedFile.id(), ex);
-                }
-            }
-            log.error("File storage error while creating ad for user: {}", username, e);
-            throw new AdvertisingCreationException("Failed to create ad due to file storage error: " + e.getMessage(), e);
+            return advertisingMapper.toResponse(updated);
 
         } catch (Exception e) {
+            // Если ошибка - удаляем файл (если загружен)
             if (storedFile != null) {
                 try {
                     fileService.delete(storedFile.id());
-                    log.info("Rolled back new ads file after exception: {}", storedFile.id());
+                    log.info("Rolled back file after error: {}", storedFile.id());
                 } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback new ads file: {}. Manual cleanup required!", storedFile.id(), ex);
+                    log.error("CRITICAL: Failed to rollback file: {}. Manual cleanup required!", storedFile.id(), ex);
                 }
             }
+
+            // Удаляем запись из БД, если она была создана
+            if (adsSaved != null && adsSaved.getId() != null) {
+                try {
+                    advertisingRepository.deleteById(adsSaved.getId());
+                    log.info("Rolled back ad record after error: {}", adsSaved.getId());
+                } catch (Exception ex) {
+                    log.error("CRITICAL: Failed to rollback ad record: {}", adsSaved.getId(), ex);
+                }
+            }
+
             log.error("Failed to create ad for user: {}", username, e);
             throw new AdvertisingCreationException("Failed to create ad: " + e.getMessage(), e);
         }
@@ -169,20 +177,21 @@ public class AdvertisingService {
 
         String imageId = ad.getImageFileId();
 
-        try {
-            if (imageId != null && !imageId.isEmpty()) {
+        // 1. Сначала удаляем запись из БД
+        advertisingRepository.deleteById(id);
+        log.info("Successfully deleted ad record with ID: {}", id);
+
+        // 2. ТОЛЬКО ПОСЛЕ успешного удаления из БД удаляем файл
+        if (imageId != null && !imageId.isEmpty()) {
+            try {
                 fileService.delete(imageId);
                 log.info("Successfully deleted file for ad ID: {}, fileId: {}", id, imageId);
+            } catch (Exception e) {
+                // Если не удалось удалить файл - логируем, но не откатываем транзакцию
+                // Файл остается как "сирота" для последующей очистки
+                log.warn("Failed to delete file for ad ID: {}. File orphaned for manual cleanup. fileId: {}",
+                        id, imageId, e);
             }
-            advertisingRepository.deleteById(id);
-            log.info("Successfully deleted ad with ID: {}", id);
-
-        } catch (FileStorageException e) {
-            log.error("File storage error while deleting ad with ID: {} and imageId: {}. Manual cleanup required!", id, imageId, e);
-            throw new AdvertisingDeletionException("Failed to delete ad due to file storage error: " + e.getMessage(), e);
-        } catch (Exception e) {
-            log.error("Unexpected error while deleting ad with ID: {} and imageId: {}", id, imageId, e);
-            throw new AdvertisingDeletionException("Failed to delete ad: " + e.getMessage(), e);
         }
     }
 
@@ -192,9 +201,10 @@ public class AdvertisingService {
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
 
         String oldImage = ad.getImageFileId();
-        StoredFileInfo storedFile = null;
+        StoredFileInfo newFile = null;
 
         try {
+            // 1. Загружаем НОВЫЙ файл
             FileUploadRequest fur = new FileUploadRequest(
                     StorageDirectories.ADS,
                     file.getOriginalFilename(),
@@ -203,39 +213,41 @@ public class AdvertisingService {
                     file.getInputStream()
             );
 
-            storedFile = fileService.replace(oldImage, fur);
-            ad.setImageFileId(storedFile.id());
+            newFile = fileService.replace(oldImage, fur); // Только загружает новый, НЕ удаляет старый
+
+            // 2. Сохраняем новый ID в БД
+            ad.setImageFileId(newFile.id());
             advertisingRepository.save(ad);
+
+            // 3. ТОЛЬКО ПОСЛЕ успешного сохранения в БД удаляем старый файл
+            if (oldImage != null && !oldImage.isEmpty()) {
+                try {
+                    fileService.delete(oldImage);
+                    log.info("Successfully deleted old file: {}", oldImage);
+                } catch (Exception e) {
+                    // Если не удалось удалить старый файл - логируем, но не откатываем
+                    // Файл остается как "сирота" для последующей очистки
+                    log.warn("Failed to delete old file: {}. File orphaned for manual cleanup.", oldImage, e);
+                }
+            }
 
             log.info("Successfully updated image for ad ID: {}, oldFileId: {}, newFileId: {}",
-                    id, oldImage, storedFile.id());
-
-        } catch (FileStorageException e) {
-            String newFileId = storedFile != null ? storedFile.id() : "null";
-            log.error("File storage error while updating image for ad ID: {}. New fileId: {}, Old fileId: {}",
-                    id, newFileId, oldImage, e);
-
-            ad.setImageFileId(oldImage);
-            advertisingRepository.save(ad);
-
-            throw new AdvertisingImageUpdateException("Failed to update ad image due to file storage error: " + e.getMessage(), e);
-
-        } catch (IOException e) {
-            log.error("IO error while updating image for ad ID: {}", id, e);
-
-            ad.setImageFileId(oldImage);
-            advertisingRepository.save(ad);
-
-            throw new AdvertisingImageUpdateException("Failed to read file content for ad image update: " + e.getMessage(), e);
+                    id, oldImage, newFile.id());
 
         } catch (Exception e) {
-            String newFileId = storedFile != null ? storedFile.id() : "null";
-            log.error("Unexpected error while updating image for ad ID: {}. New fileId: {}", id, newFileId, e);
+            // Если произошла ошибка - откатываем новый файл
+            if (newFile != null) {
+                try {
+                    fileService.delete(newFile.id());
+                    log.info("Rolled back new file after error: {}", newFile.id());
+                } catch (Exception ex) {
+                    log.error("CRITICAL: Failed to rollback new file: {}. Manual cleanup required!", newFile.id(), ex);
+                }
+            }
 
-            ad.setImageFileId(oldImage);
-            advertisingRepository.save(ad);
-
-            throw new AdvertisingImageUpdateException("Unexpected error during ad image update: " + e.getMessage(), e);
+            // НЕ СОХРАНЯЕМ старый ID в БД!
+            log.error("Failed to update image for ad ID: {}", id, e);
+            throw new AdvertisingImageUpdateException("Failed to update ad image: " + e.getMessage(), e);
         }
     }
 

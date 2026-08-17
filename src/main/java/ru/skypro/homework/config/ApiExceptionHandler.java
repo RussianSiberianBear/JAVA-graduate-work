@@ -3,8 +3,10 @@ package ru.skypro.homework.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.skypro.homework.exception.*;
 
@@ -14,6 +16,14 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice(annotations = org.springframework.web.bind.annotation.RestController.class)
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<String> handleUsernameNotFound(UsernameNotFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body("User not found. " + e.getMessage());
+    }
 
     @ExceptionHandler(value = {Exception.class})
     public ResponseEntity<String> handleException(Exception ex) {
@@ -28,12 +38,6 @@ public class ApiExceptionHandler {
     }
 
     // ============ Ошибки "Не найдено" (404) ============
-
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<String> handleUsernameNotFoundException(UsernameNotFoundException ex) {
-        log.warn("API username not found: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
-    }
 
     @ExceptionHandler(AdvertisingNotFoundException.class)
     public ResponseEntity<String> handleAdvertisingNotFoundException(AdvertisingNotFoundException ex) {
