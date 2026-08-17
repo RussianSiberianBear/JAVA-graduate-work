@@ -210,8 +210,8 @@ class AdvertisingServiceTest {
         verify(advertisingMapper, times(1)).toEntity(properties);
         verify(fileStorageService, times(1)).upload(any(FileUploadRequest.class));
 
-        // Исправлено: save вызывается 2 раза (создание + обновление с файлом)
-        verify(advertisingRepository, times(2)).save(ad);
+        // ОДИН save! (запись создается сразу с ID файла)
+        verify(advertisingRepository, times(1)).save(ad);
         verify(advertisingMapper, times(1)).toResponse(ad);
     }
 
@@ -236,7 +236,6 @@ class AdvertisingServiceTest {
         CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
         User user = createDefaultUser();
         Advertising ad = createDefaultAdvertising();
-        ad.setId(1L);
 
         when(multipartFile.getOriginalFilename()).thenReturn(FILE_NAME);
         when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
@@ -245,9 +244,6 @@ class AdvertisingServiceTest {
 
         when(userRepository.findByEmail(USER_EMAIL)).thenReturn(Optional.of(user));
         when(advertisingMapper.toEntity(properties)).thenReturn(ad);
-
-        // Мокаем сохранение в БД (первый save)
-        when(advertisingRepository.save(ad)).thenReturn(ad);
 
         // Мокаем ошибку при загрузке файла
         when(fileStorageService.upload(any(FileUploadRequest.class)))
@@ -261,15 +257,13 @@ class AdvertisingServiceTest {
         // Проверяем вызовы
         verify(userRepository, times(1)).findByEmail(USER_EMAIL);
         verify(advertisingMapper, times(1)).toEntity(properties);
-
-        // save был вызван ДЛЯ СОЗДАНИЯ записи (это правильно!)
-        verify(advertisingRepository, times(1)).save(ad);
-
-        // Проверяем, что был вызов upload
         verify(fileStorageService, times(1)).upload(any(FileUploadRequest.class));
 
-        // Проверяем, что была попытка удалить запись из БД (rollback)
-        verify(advertisingRepository, times(1)).deleteById(ad.getId());
+        // save НЕ вызывался, потому что файл не загрузился
+        verify(advertisingRepository, never()).save(ad);
+
+        // deleteById НЕ вызывался, потому что запись не создавалась
+        verify(advertisingRepository, never()).deleteById(any());
     }
 
     // ===== ТЕСТЫ ДЛЯ updateById =====

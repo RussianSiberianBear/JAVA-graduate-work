@@ -65,15 +65,8 @@ public class AdvertisingService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
 
-        // 1. Сохраняем объявление БЕЗ файла
-        Advertising advertising = advertisingMapper.toEntity(properties);
-        advertising.setAuthor(user);
-        advertising.setImageFileId(null);
-        Advertising adsSaved = advertisingRepository.save(advertising);
-
         StoredFileInfo storedFile = null;
         try {
-            // 2. Загружаем файл
             FileUploadRequest fur = new FileUploadRequest(
                     StorageDirectories.ADS,
                     file.getOriginalFilename(),
@@ -82,35 +75,35 @@ public class AdvertisingService {
                     file.getInputStream()
             );
 
+            Advertising advertising = advertisingMapper.toEntity(properties);
+            advertising.setAuthor(user);
             storedFile = fileService.upload(fur);
+            advertising.setImageFileId(storedFile.id());
 
-            // 3. Обновляем запись с ID файла
-            adsSaved.setImageFileId(storedFile.id());
-            Advertising updated = advertisingRepository.save(adsSaved);
+            Advertising adsSaved = advertisingRepository.save(advertising);
+            return advertisingMapper.toResponse(adsSaved);
 
-            return advertisingMapper.toResponse(updated);
-
-        } catch (Exception e) {
-            // Если ошибка - удаляем файл (если загружен)
+        } catch (FileStorageException e) {
             if (storedFile != null) {
                 try {
                     fileService.delete(storedFile.id());
-                    log.info("Rolled back file after error: {}", storedFile.id());
+                    log.info("Rolled back new ads file after FileStorageException: {}", storedFile.id());
                 } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback file: {}. Manual cleanup required!", storedFile.id(), ex);
+                    log.error("CRITICAL: Failed to rollback new ads file: {}. Manual cleanup required!", storedFile.id(), ex);
                 }
             }
+            log.error("File storage error while creating ad for user: {}", username, e);
+            throw new AdvertisingCreationException("Failed to create ad due to file storage error: " + e.getMessage(), e);
 
-            // Удаляем запись из БД, если она была создана
-            if (adsSaved != null && adsSaved.getId() != null) {
+        } catch (Exception e) {
+            if (storedFile != null) {
                 try {
-                    advertisingRepository.deleteById(adsSaved.getId());
-                    log.info("Rolled back ad record after error: {}", adsSaved.getId());
+                    fileService.delete(storedFile.id());
+                    log.info("Rolled back new ads file after exception: {}", storedFile.id());
                 } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback ad record: {}", adsSaved.getId(), ex);
+                    log.error("CRITICAL: Failed to rollback new ads file: {}. Manual cleanup required!", storedFile.id(), ex);
                 }
             }
-
             log.error("Failed to create ad for user: {}", username, e);
             throw new AdvertisingCreationException("Failed to create ad: " + e.getMessage(), e);
         }
