@@ -218,8 +218,7 @@ class CommentServiceTest {
         // Подготовка
         Long adId = NON_EXISTENT_AD_ID;
 
-        // Мокаем оба вызова - сначала комментарии (пустой список), потом проверка объявления
-        when(commentRepository.findAllByAdvertisingId(adId)).thenReturn(List.of());
+        // Мокаем только проверку объявления - она должна выбросить исключение
         when(advertisingRepository.findById(adId)).thenReturn(Optional.empty());
 
         // Действие и проверка
@@ -227,8 +226,11 @@ class CommentServiceTest {
                 .isInstanceOf(AdvertisingNotFoundException.class)
                 .hasMessage(ExceptionMessages.formatAdNotFound(adId));
 
-        verify(commentRepository, times(1)).findAllByAdvertisingId(adId);
+        // Проверяем, что findById был вызван
         verify(advertisingRepository, times(1)).findById(adId);
+
+        // Проверяем, что commentRepository НЕ вызывался
+        verify(commentRepository, never()).findAllByAdvertisingId(any());
         verify(commentMapper, never()).toResponse(any());
     }
 
