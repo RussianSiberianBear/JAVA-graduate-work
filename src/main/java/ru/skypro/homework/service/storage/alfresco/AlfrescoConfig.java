@@ -22,9 +22,9 @@ public class AlfrescoConfig {
                     String encodedAuth = java.util.Base64.getEncoder()
                             .encodeToString(auth.getBytes());
 
-                    request.headers(headers -> {
-                        headers.add(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth);
-                    });
+                    request.headers(headers ->
+                        headers.add(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth)
+                    );
                 })
                 .build();
     }
