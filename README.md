@@ -142,7 +142,6 @@ docker compose -f сommunity-compose.yaml up -d
 ```properties
 alfresco.folder-id=ваш-id-папки
 ```
-
 ---
 
 ### 3. Настройка приложения
