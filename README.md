@@ -113,7 +113,7 @@ GRANT ALL PRIVILEGES ON DATABASE java_graduate_work TO java_user;
 
 ---
 
-### 2. Запуск Alfresco Content Service Community
+### 2. Запуск Alfresco Content Services Community
 
 Alfresco CS должен быть доступен на порту `9090`.
 
