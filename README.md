@@ -130,7 +130,7 @@ docker compose -f community-compose.yaml up -d
 
 #### Подготовка папки в Alfresco CS
 
-После запуска Alfresco:
+После запуска Alfresco CS:
 
 1. Откройте `http://localhost:9091/share`.
 2. Войдите с учётными данными `admin / admin`.
