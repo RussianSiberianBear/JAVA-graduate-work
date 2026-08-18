@@ -15,7 +15,7 @@
 * **MapStruct** — маппинг DTO и сущностей
 * **Lombok** — генерация шаблонного кода
 * **Alfresco Content Services Community 26.x**(далее Alfresco CS) — файловое хранилище (аватарки и изображения объявлений)
-* **RestClient** — взаимодействие с Alfresco API
+* **RestClient** — взаимодействие с Alfresco CS API
 
 ---
 
