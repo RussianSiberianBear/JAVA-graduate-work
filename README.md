@@ -124,7 +124,7 @@ Alfresco Community ECM должен быть доступен на порту `9
 5. Запустите
 
 ```bash
-docker compose -f сommunity-compose.yaml up -d
+docker compose -f community-compose.yaml up -d
 ```
 6. Дождитесь запуска всех контейнеров
 
