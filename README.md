@@ -14,7 +14,7 @@
 * **Swagger/OpenAPI (SpringDoc 2.8.5)** — документация API
 * **MapStruct** — маппинг DTO и сущностей
 * **Lombok** — генерация шаблонного кода
-* **Alfresco Community 26.x** — файловое хранилище (аватарки и изображения объявлений)
+* **Alfresco Content Services Community 26.x**(далее Alfresco CS) — файловое хранилище (аватарки и изображения объявлений)
 * **RestClient** — взаимодействие с Alfresco API
 
 ---
@@ -26,7 +26,7 @@
 ```text
 controller → service → repository (JPA → PostgreSQL)
               ↓
-          filestorage (Alfresco)
+          filestorage (Alfresco CS)
 ```
 
 ### Функциональные модули
@@ -113,14 +113,14 @@ GRANT ALL PRIVILEGES ON DATABASE java_graduate_work TO java_user;
 
 ---
 
-### 2. Запуск Alfresco Community
+### 2. Запуск Alfresco Content Service Community
 
-Alfresco Community ECM должен быть доступен на порту `9090`.
+Alfresco CS должен быть доступен на порту `9090`.
 
-1. Скачайте Alfresco acs-deployment https://github.com/Alfresco/acs-deployment
-2. Распакуйте архив
-3. Замените файл acs-deployment\docker-compose\community-compose.yaml на файл community-compose.yaml из данного проекта.
-4. Перейдите в папку acs-deployment\docker-compose
+1. Скачайте Alfresco CS https://github.com/Alfresco/acs-deployment
+2. Распакуйте архив в какую либо папку
+3. Замените файл acs-deployment-master\docker-compose\community-compose.yaml на файл community-compose.yaml из данного проекта.
+4. Перейдите в папку acs-deployment-master\docker-compose
 5. Запустите
 
 ```bash
@@ -128,7 +128,7 @@ docker compose -f community-compose.yaml up -d
 ```
 6. Дождитесь запуска всех контейнеров
 
-#### Подготовка папки в Alfresco Community ECM
+#### Подготовка папки в Alfresco CS
 
 После запуска Alfresco:
 
@@ -146,13 +146,13 @@ alfresco.folder-id=ваш-id-папки
 
 ### 3. Настройка приложения
 
-Перед запуском приложения проверьте настройки подключения к PostgreSQL и Alfresco в файле:
+Перед запуском приложения проверьте настройки подключения к PostgreSQL и Alfresco CS в файле:
 
 ```text
 src/main/resources/application.properties
 ```
 
-Убедитесь, что указаны корректные параметры подключения к базе данных и UUID папки в Alfresco.
+Убедитесь, что указаны корректные параметры подключения к базе данных и UUID папки в Alfresco CS.
 
 ---
 
@@ -182,11 +182,11 @@ src/main/resources/application.properties
 
 ### 5. Проверка работы
 
-| Сервис         | URL                                     | Логин / пароль  |
-| -------------- |-----------------------------------------| --------------- |
-| Приложение     | `http://localhost:8080`                 | —               |
-| Swagger UI     | `http://localhost:8080/swagger-ui.html` | —               |
-| Alfresco Share | `http://localhost:9091/share`           | `admin / admin` |
+| Сервис            | URL                                     | Логин / пароль  |
+|-------------------|-----------------------------------------| --------------- |
+| Приложение        | `http://localhost:8080`                 | —               |
+| Swagger UI        | `http://localhost:8080/swagger-ui.html` | —               |
+| Alfresco CS Share | `http://localhost:9091/share`           | `admin / admin` |
 
 ---
 
@@ -358,7 +358,7 @@ src/
 * **`security`** — аутентификация и работа с пользователями Spring Security.
 * **`filter`** — дополнительные HTTP-фильтры, включая CORS и Basic Authentication.
 * **`service/storage`** — абстракция файлового хранилища.
-* **`service/storage/alfresco`** — реализация файлового хранилища на базе Alfresco Community ECM.
+* **`service/storage/alfresco`** — реализация файлового хранилища на базе Alfresco CS.
 * **`config`** — конфигурация приложения и инфраструктурных компонентов.
 * **`exception`** — пользовательские исключения.
 * **`test`** — модульные и интеграционные тесты контроллеров, сервисов и мапперов.
@@ -367,7 +367,7 @@ src/
 
 ### 9. Возможные проблемы и решения
 
-#### 9.1. Alfresco не запускается
+#### 9.1. Alfresco CS не запускается
 
 Проверьте, что порт `9090` свободен:
 
