@@ -14,7 +14,7 @@
 * **Swagger/OpenAPI (SpringDoc 2.8.5)** — документация API
 * **MapStruct** — маппинг DTO и сущностей
 * **Lombok** — генерация шаблонного кода
-* **Alfresco Community 23.x** — файловое хранилище (аватарки и изображения объявлений)
+* **Alfresco Community 26.x** — файловое хранилище (аватарки и изображения объявлений)
 * **RestClient** — взаимодействие с Alfresco API
 
 ---
@@ -82,7 +82,7 @@ controller → service → repository (JPA → PostgreSQL)
 
 * **JDK 21**
 * **PostgreSQL 16** — локально или в Docker
-* **Alfresco Community 23.x** — на порту `9090`
+* **Alfresco Community 26.x** — на порту `9090`
 * **Maven** или встроенный Maven Wrapper (`./mvnw`)
 
 ---
@@ -117,79 +117,25 @@ GRANT ALL PRIVILEGES ON DATABASE java_graduate_work TO java_user;
 
 Alfresco должен быть доступен на порту `9090`.
 
-#### Вариант А: через Docker Compose (рекомендуется)
-
-Создайте файл `docker-compose-alfresco.yml`:
-
-```yaml
-services:
-
-  alfresco:
-    image: alfresco/alfresco-content-repository-community:23.1.0
-    container_name: alfresco
-    restart: unless-stopped
-
-    ports:
-      - "9090:8080"
-
-    environment:
-      JAVA_OPTS: >-
-        -Xms512m
-        -Xmx1024m
-        -Ddb.username=alfresco
-        -Ddb.password=alfresco
-        -Ddb.url=jdbc:postgresql://host.docker.internal:5432/alfresco
-        -Ddb.driver=org.postgresql.Driver
-
-    volumes:
-      - alfresco_data:/usr/local/tomcat/alf_data
-
-  share:
-    image: alfresco/alfresco-share:23.1.0
-    container_name: alfresco-share
-    restart: unless-stopped
-
-    ports:
-      - "9091:8080"
-
-    environment:
-      JAVA_OPTS: >-
-        -Xms512m
-        -Xmx1024m
-
-      REPO_HOST: "alfresco"
-      REPO_PORT: "8080"
-
-    depends_on:
-      - alfresco
-
-volumes:
-  alfresco_data:
-```
-
-Запустите Alfresco:
+1. Скачайте Alfresc acs-deployment https://github.com/Alfresco/acs-deployment
+2. Распакуйте архив
+3. Замените файл acs-deployment\docker-compose\community-compose.yml на файл community-compose.yml из данного проекта.
+4. Перейдите в папку acs-deployment\docker-compose
+5. Запустите
 
 ```bash
-docker-compose -f docker-compose-alfresco.yml up -d
+docker compose -f сommunity-compose.yml up -d
 ```
-
-#### Вариант Б: скачать и запустить Alfresco вручную
-
-Скачайте Alfresco Community с официального сайта, распакуйте архив и запустите приложение:
-
-```bash
-cd alfresco-community
-./alfresco.sh start
-```
+6. Дождитесь запуска всех контейнеров
 
 #### Подготовка папки в Alfresco
 
 После запуска Alfresco:
 
-1. Откройте `http://localhost:9090/share`.
+1. Откройте `http://localhost:9091/share`.
 2. Войдите с учётными данными `admin / admin`.
 3. Перейдите в **Репозиторий (Repository)**.
-4. Создайте папку `storage` (или используйте другое название).
+4. Создайте папку `storage`(или используйте другое название), например, в папке `Sites`.
 5. Скопируйте UUID созданной папки.
 6. Укажите UUID в `application.properties`:
 
@@ -238,10 +184,10 @@ src/main/resources/application.properties
 ### 5. Проверка работы
 
 | Сервис         | URL                                     | Логин / пароль  |
-| -------------- | --------------------------------------- | --------------- |
+| -------------- |-----------------------------------------| --------------- |
 | Приложение     | `http://localhost:8080`                 | —               |
 | Swagger UI     | `http://localhost:8080/swagger-ui.html` | —               |
-| Alfresco Share | `http://localhost:9090/share`           | `admin / admin` |
+| Alfresco Share | `http://localhost:9091/share`           | `admin / admin` |
 
 ---
 
@@ -326,8 +272,7 @@ src/
 │   │   │   ├── AdvertisingUpdateException.java
 │   │   │   ├── CommentNotFoundException.java
 │   │   │   ├── FileStorageException.java
-│   │   │   ├── InvalidPasswordException.java
-│   │   │   └── UsernameNotFoundException.java
+│   │   │   └── InvalidPasswordException.java
 │   │   │
 │   │   ├── filter/                             # Фильтры HTTP-запросов
 │   │   │   └── BasicAuthCorsFilter.java        # Basic Auth и CORS
@@ -414,7 +359,7 @@ src/
 * **`security`** — аутентификация и работа с пользователями Spring Security.
 * **`filter`** — дополнительные HTTP-фильтры, включая CORS и Basic Authentication.
 * **`service/storage`** — абстракция файлового хранилища.
-* **`service/storage/alfresco`** — реализация файлового хранилища на базе Alfresco.
+* **`service/storage/alfresco`** — реализация файлового хранилища на базе Alfresco Community ECM.
 * **`config`** — конфигурация приложения и инфраструктурных компонентов.
 * **`exception`** — пользовательские исключения.
 * **`test`** — модульные и интеграционные тесты контроллеров, сервисов и мапперов.
@@ -455,47 +400,6 @@ springdoc.swagger-ui.enabled=true
 1. Нажмите кнопку **Authorize** (🔒).
 2. Введите логин и пароль.
 3. Нажмите **Authorize**.
-
----
-
-## Docker Compose
-
-### Запуск PostgreSQL и Alfresco
-
-Для запуска инфраструктуры проекта в Docker Compose создайте файл `docker-compose.yml`:
-
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: java_graduate_work
-      POSTGRES_USER: java_user
-      POSTGRES_PASSWORD: java
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  alfresco:
-    image: alfresco/alfresco-content-repository-community:23.1.0
-    ports:
-      - "9090:8080"
-    environment:
-      - JAVA_OPTS=-Xms512m -Xmx1024m
-    volumes:
-      - alfresco_data:/usr/local/tomcat/alf_data
-
-volumes:
-  postgres_data:
-  alfresco_data:
-```
-
-Запуск:
-
-```bash
-docker-compose up -d
-```
 
 ---
 
