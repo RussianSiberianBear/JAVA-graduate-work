@@ -115,9 +115,9 @@ GRANT ALL PRIVILEGES ON DATABASE java_graduate_work TO java_user;
 
 ### 2. Запуск Alfresco Community
 
-Alfresco должен быть доступен на порту `9090`.
+Alfresco Community ECM должен быть доступен на порту `9090`.
 
-1. Скачайте Alfresc acs-deployment https://github.com/Alfresco/acs-deployment
+1. Скачайте Alfresco acs-deployment https://github.com/Alfresco/acs-deployment
 2. Распакуйте архив
 3. Замените файл acs-deployment\docker-compose\community-compose.yaml на файл community-compose.yaml из данного проекта.
 4. Перейдите в папку acs-deployment\docker-compose
@@ -128,7 +128,7 @@ docker compose -f сommunity-compose.yaml up -d
 ```
 6. Дождитесь запуска всех контейнеров
 
-#### Подготовка папки в Alfresco
+#### Подготовка папки в Alfresco Community ECM
 
 После запуска Alfresco:
 
