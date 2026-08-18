@@ -124,7 +124,7 @@ Alfresco должен быть доступен на порту `9090`.
 5. Запустите
 
 ```bash
-docker compose -f сommunity-compose.yml up -d
+docker compose -f сommunity-compose.yaml up -d
 ```
 6. Дождитесь запуска всех контейнеров
 
