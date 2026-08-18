@@ -119,7 +119,7 @@ Alfresco должен быть доступен на порту `9090`.
 
 1. Скачайте Alfresc acs-deployment https://github.com/Alfresco/acs-deployment
 2. Распакуйте архив
-3. Замените файл acs-deployment\docker-compose\community-compose.yml на файл community-compose.yml из данного проекта.
+3. Замените файл acs-deployment\docker-compose\community-compose.yml на файл community-compose.yaml из данного проекта.
 4. Перейдите в папку acs-deployment\docker-compose
 5. Запустите
 
