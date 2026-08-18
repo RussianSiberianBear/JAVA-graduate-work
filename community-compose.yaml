@@ -4,7 +4,8 @@
 services:
   alfresco:
     image: docker.io/alfresco/alfresco-content-repository-community:26.2.0
-    mem_limit: 1200m
+    mem_limit: 1000m
+    restart: unless-stopped
     ports:
       - "9090:8080"
     environment:
@@ -51,13 +52,14 @@ services:
       - alf_data:/usr/local/tomcat/alf_data
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       elasticsearch:
-        condition: service_healthy
+        condition: service_started
 
   transform-core-aio:
     image: alfresco/alfresco-transform-core-aio:5.4.3
-    mem_limit: 1024m
+    mem_limit: 768m
+    restart: unless-stopped
     ports:
       - "8090:8090"
     environment:
@@ -72,11 +74,12 @@ services:
       start_period: 1m
     depends_on:
       activemq:
-        condition: service_healthy
+        condition: service_started
 
   share:
     image: docker.io/alfresco/alfresco-share:26.2.0
-    mem_limit: 800m
+    mem_limit: 640m
+    restart: unless-stopped
     ports:
       - "9091:8080"
     environment:
@@ -100,11 +103,12 @@ services:
       start_period: 1m30s
     depends_on:
       alfresco:
-        condition: service_healthy
+        condition: service_started
 
   postgres:
     image: postgres:17.9
-    mem_limit: 512m
+    mem_limit: 384m
+    restart: unless-stopped
     ports:
       - "5433:5432"
     environment:
@@ -123,7 +127,8 @@ services:
 
   elasticsearch:
     image: elasticsearch:8.17.10
-    mem_limit: 1g
+    mem_limit: 768m
+    restart: unless-stopped
     environment:
       - xpack.security.enabled=false
       - discovery.type=single-node
@@ -164,15 +169,16 @@ services:
       ALFRESCO_REINDEX_CONTINUOUS_OVERLAP: 10m
     depends_on:
       elasticsearch:
-        condition: service_healthy
+        condition: service_started
       alfresco:
-        condition: service_healthy
+        condition: service_started
       transform-core-aio:
-        condition: service_healthy
+        condition: service_started
 
   activemq:
     image: docker.io/alfresco/alfresco-activemq:6.2.6-jre17-rockylinux8
-    mem_limit: 1g
+    mem_limit: 768m
+    restart: unless-stopped
     ports:
       - "8161:8161"
     environment:
