@@ -117,16 +117,14 @@ GRANT ALL PRIVILEGES ON DATABASE java_graduate_work TO java_user;
 
 Alfresco CS должен быть доступен на порту `9090`.
 
-1. Скачайте Alfresco CS https://github.com/Alfresco/acs-deployment
-2. Распакуйте архив в какую-либо папку
-3. Замените файл acs-deployment-master\docker-compose\community-compose.yaml на файл community-compose.yaml из данного проекта.
-4. Перейдите в папку acs-deployment-master\docker-compose
-5. Запустите
+1. Сккопируйте файл из проекта community-compose.yaml в какую-либо папку на своем компьютере
+2. Перейдите в папку с файлом community-compose.yaml
+3. Запустите
 
 ```bash
 docker compose -f community-compose.yaml up -d
 ```
-6. Дождитесь запуска всех контейнеров
+4. Дождитесь запуска всех контейнеров и подождите еще 3-5 минут для инициализации всех таблиц базы данных Alfresco CS
 
 #### Подготовка папки в Alfresco CS
 
