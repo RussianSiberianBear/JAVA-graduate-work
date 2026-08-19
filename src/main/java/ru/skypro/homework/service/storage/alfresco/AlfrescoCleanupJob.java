@@ -10,6 +10,8 @@ import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.service.storage.FileStorageService;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +27,9 @@ public class AlfrescoCleanupJob {
 
     private static final int PAGE_SIZE = 100;
 
+    private static final Duration ORPHAN_FILE_TTL =
+            Duration.ofDays(1);
+
     private final RestClient client;
     private final AlfrescoProperties properties;
     private final UserRepository userRepository;
@@ -33,7 +38,8 @@ public class AlfrescoCleanupJob {
 
     /**
      * Ежедневная очистка файлов Alfresco,
-     * которые больше не используются приложением.
+     * которые больше не используются приложением
+     * и были созданы более суток назад.
      */
     @Scheduled(cron = "0 0 3 * * *")
     public void cleanupOrphanedFiles() {
@@ -43,7 +49,11 @@ public class AlfrescoCleanupJob {
             Set<String> usedFileIds = getUsedFileIds();
             List<AlfrescoFileInfo> allFiles = getAllFilesFromAlfresco();
 
+            OffsetDateTime deleteBefore =
+                    OffsetDateTime.now().minus(ORPHAN_FILE_TTL);
+
             int deletedCount = 0;
+            int skippedRecentCount = 0;
 
             for (AlfrescoFileInfo fileInfo : allFiles) {
 
@@ -61,14 +71,40 @@ public class AlfrescoCleanupJob {
                     continue;
                 }
 
+                OffsetDateTime createdAt = fileInfo.getCreatedAt();
+
+                if (createdAt == null) {
+                    log.warn(
+                            "Skipping orphaned file because createdAt is missing: {} (ID: {})",
+                            fileInfo.getName(),
+                            fileId
+                    );
+                    continue;
+                }
+
+                if (createdAt.isAfter(deleteBefore)) {
+                    skippedRecentCount++;
+
+                    log.debug(
+                            "Skipping recent orphaned file: {} (ID: {}, createdAt: {})",
+                            fileInfo.getName(),
+                            fileId,
+                            createdAt
+                    );
+
+                    continue;
+                }
+
                 try {
                     fileService.delete(fileId);
                     deletedCount++;
 
-                    log.debug(
-                            "Deleted orphaned file: {} (ID: {})",
+                    log.info(
+                            "Deleted orphaned file older than {}: {} (ID: {}, createdAt: {})",
+                            ORPHAN_FILE_TTL,
                             fileInfo.getName(),
-                            fileId
+                            fileId,
+                            createdAt
                     );
 
                 } catch (Exception e) {
@@ -82,9 +118,11 @@ public class AlfrescoCleanupJob {
             }
 
             log.info(
-                    "Cleanup job completed. Found {} files, {} files are used, deleted {} orphaned files.",
+                    "Cleanup job completed. Found {} nodes, {} file IDs are used, " +
+                            "skipped {} recent orphaned files, deleted {} old orphaned files.",
                     allFiles.size(),
                     usedFileIds.size(),
+                    skippedRecentCount,
                     deletedCount
             );
 
@@ -93,13 +131,6 @@ public class AlfrescoCleanupJob {
         }
     }
 
-    /**
-     * Получает только идентификаторы файлов,
-     * используемых пользователями и объявлениями.
-     * <p>
-     * Полные сущности User и Advertising
-     * из базы данных не загружаются.
-     */
     private Set<String> getUsedFileIds() {
         Set<String> usedFileIds = new HashSet<>();
 
@@ -119,10 +150,6 @@ public class AlfrescoCleanupJob {
         return usedFileIds;
     }
 
-    /**
-     * Получает содержимое целевой папки Alfresco
-     * постранично через Alfresco REST API.
-     */
     private List<AlfrescoFileInfo> getAllFilesFromAlfresco() {
         List<AlfrescoFileInfo> allFiles = new ArrayList<>();
 
@@ -161,7 +188,8 @@ public class AlfrescoCleanupJob {
                         new AlfrescoFileInfo(
                                 node.getId(),
                                 node.getName(),
-                                node.isFolder()
+                                node.isFolder(),
+                                node.getCreatedAt()
                         )
                 );
             }
@@ -175,7 +203,7 @@ public class AlfrescoCleanupJob {
         }
 
         log.info(
-                "Found {} files in Alfresco folder",
+                "Found {} nodes in Alfresco folder",
                 allFiles.size()
         );
 

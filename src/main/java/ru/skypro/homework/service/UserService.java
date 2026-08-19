@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
@@ -16,6 +18,7 @@ import ru.skypro.homework.exception.InvalidPasswordException;
 import ru.skypro.homework.mapper.UserMapper;
 import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.UserRepository;
+import ru.skypro.homework.service.storage.FileReplacementCoordinator;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFileInfo;
@@ -33,15 +36,17 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final FileStorageService fileService;
+    private final FileReplacementCoordinator fileReplacementCoordinator;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        UserMapper userMapper,
-                       FileStorageService fileService) {
+                       FileStorageService fileService, FileReplacementCoordinator fileReplacementCoordinator) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
         this.fileService = fileService;
+        this.fileReplacementCoordinator = fileReplacementCoordinator;
     }
 
     /**
@@ -120,15 +125,18 @@ public class UserService {
      * @throws IOException - проверяемое исключение ввода-вывода
      */
     @Transactional
-    public void updateUsersAvatar(String username, MultipartFile file) throws IOException {
+    public void updateUsersAvatar(String username, MultipartFile file) {
         User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound(username)));
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                ExceptionMessages.formatUserNotFound(username)
+                        )
+                );
 
         String oldFileId = user.getAvatarFileId();
-        String newFileId = null;
 
         try {
-            FileUploadRequest fur = new FileUploadRequest(
+            FileUploadRequest request = new FileUploadRequest(
                     StorageDirectories.AVATARS,
                     file.getOriginalFilename(),
                     file.getContentType(),
@@ -136,46 +144,29 @@ public class UserService {
                     file.getInputStream()
             );
 
-            StoredFileInfo storedFile;
-            if (!StringUtils.hasText(oldFileId)) {
-                storedFile = fileService.upload(fur);
-                newFileId = storedFile.id();
-                log.info("Uploaded new avatar for user: {}, fileId: {}", username, newFileId);
-            } else {
-                storedFile = fileService.replace(oldFileId, fur);
-                newFileId = storedFile.id();
-                log.info("Replaced avatar for user: {}, oldFileId: {}, newFileId: {}", username, oldFileId, newFileId);
-            }
+            StoredFileInfo newFile =
+                    fileReplacementCoordinator.uploadAndRegisterReplacement(
+                            request,
+                            oldFileId
+                    );
 
-            user.setAvatarFileId(newFileId);
-            userRepository.save(user);
-            log.info("Avatar updated successfully for user: {}, fileId: {}", username, newFileId);
+            user.setAvatarFileId(newFile.id());
 
-        } catch (FileStorageException e) {
-            // Откатываем только если был создан новый файл
-            if (newFileId != null) {
-                try {
-                    fileService.delete(newFileId);
-                    log.info("Rolled back new avatar file: {}", newFileId);
-                } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback new avatar file: {}. Manual cleanup required!", newFileId, ex);
-                }
-            }
-            log.error("File storage error while updating avatar for user: {}", username, e);
-            throw e; // или обернуть в свое исключение уровня сервиса
-        } catch (Exception e) {
-            if (newFileId != null) {
-                try {
-                    fileService.delete(newFileId);
-                    log.info("Rolled back new avatar file: {}", newFileId);
-                } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback new avatar file: {}. Manual cleanup required!", newFileId, ex);
-                }
-            }
-            log.error("Failed to update avatar for user: {}", username, e);
-            throw e;
+            log.info(
+                    "Avatar updated for user: {}, oldFileId: {}, newFileId: {}",
+                    username,
+                    oldFileId,
+                    newFile.id()
+            );
+
+        } catch (IOException e) {
+            log.error("Failed to read avatar file for user: {}", username, e);
+
+            throw new FileStorageException(
+                    "Failed to read uploaded avatar: " + e.getMessage(),
+                    e
+            );
         }
     }
-
 
 }

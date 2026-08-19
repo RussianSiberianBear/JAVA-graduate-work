@@ -127,12 +127,8 @@ public class UserController {
     })
     public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) {
 
-        try {
-            userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
-            return ResponseEntity.ok().build();
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
+        return ResponseEntity.ok().build();
     }
 
 }

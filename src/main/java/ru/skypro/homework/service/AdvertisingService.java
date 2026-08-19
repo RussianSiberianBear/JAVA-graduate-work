@@ -4,6 +4,9 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.skypro.homework.config.StorageDirectories;
 import ru.skypro.homework.constants.ExceptionMessages;
@@ -18,6 +21,7 @@ import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.security.SecurityHelper;
+import ru.skypro.homework.service.storage.FileReplacementCoordinator;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFileInfo;
@@ -34,17 +38,19 @@ public class AdvertisingService {
     private final UserRepository userRepository;
     private final SecurityHelper securityHelper;
     private final FileStorageService fileService;
+    private final FileReplacementCoordinator fileReplacementCoordinator;
 
     public AdvertisingService(AdvertisingRepository advertisingRepository,
                               AdvertisingMapper advertisingMapper,
                               UserRepository userRepository,
                               SecurityHelper securityHelper,
-                              FileStorageService fileStorageService) {
+                              FileStorageService fileStorageService, FileReplacementCoordinator fileReplacementCoordinator) {
         this.advertisingRepository = advertisingRepository;
         this.advertisingMapper = advertisingMapper;
         this.userRepository = userRepository;
         this.securityHelper = securityHelper;
         this.fileService = fileStorageService;
+        this.fileReplacementCoordinator = fileReplacementCoordinator;
     }
 
     public AdvertisingAllResponseDto findAll() {
@@ -191,14 +197,16 @@ public class AdvertisingService {
     @Transactional
     public void updateAdsImage(Long id, MultipartFile file) {
         Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+                .orElseThrow(() ->
+                        new AdvertisingNotFoundException(
+                                ExceptionMessages.formatAdNotFound(id)
+                        )
+                );
 
-        String oldImage = ad.getImageFileId();
-        StoredFileInfo newFile = null;
+        String oldFileId = ad.getImageFileId();
 
         try {
-            // 1. Загружаем НОВЫЙ файл
-            FileUploadRequest fur = new FileUploadRequest(
+            FileUploadRequest request = new FileUploadRequest(
                     StorageDirectories.ADS,
                     file.getOriginalFilename(),
                     file.getContentType(),
@@ -206,41 +214,28 @@ public class AdvertisingService {
                     file.getInputStream()
             );
 
-            newFile = fileService.replace(oldImage, fur); // Только загружает новый, НЕ удаляет старый
+            StoredFileInfo newFile =
+                    fileReplacementCoordinator.uploadAndRegisterReplacement(
+                            request,
+                            oldFileId
+                    );
 
-            // 2. Сохраняем новый ID в БД
             ad.setImageFileId(newFile.id());
-            advertisingRepository.save(ad);
 
-            // 3. ТОЛЬКО ПОСЛЕ успешного сохранения в БД удаляем старый файл
-            if (oldImage != null && !oldImage.isEmpty()) {
-                try {
-                    fileService.delete(oldImage);
-                    log.info("Successfully deleted old file: {}", oldImage);
-                } catch (Exception e) {
-                    // Если не удалось удалить старый файл - логируем, но не откатываем
-                    // Файл остается как "сирота" для последующей очистки
-                    log.warn("Failed to delete old file: {}. File orphaned for manual cleanup.", oldImage, e);
-                }
-            }
+            log.info(
+                    "Image updated for ad ID: {}, oldFileId: {}, newFileId: {}",
+                    id,
+                    oldFileId,
+                    newFile.id()
+            );
 
-            log.info("Successfully updated image for ad ID: {}, oldFileId: {}, newFileId: {}",
-                    id, oldImage, newFile.id());
+        } catch (IOException e) {
+            log.error("Failed to read image file for ad ID: {}", id, e);
 
-        } catch (Exception e) {
-            // Если произошла ошибка - откатываем новый файл
-            if (newFile != null) {
-                try {
-                    fileService.delete(newFile.id());
-                    log.info("Rolled back new file after error: {}", newFile.id());
-                } catch (Exception ex) {
-                    log.error("CRITICAL: Failed to rollback new file: {}. Manual cleanup required!", newFile.id(), ex);
-                }
-            }
-
-            // НЕ СОХРАНЯЕМ старый ID в БД!
-            log.error("Failed to update image for ad ID: {}", id, e);
-            throw new AdvertisingImageUpdateException("Failed to update ad image: " + e.getMessage(), e);
+            throw new AdvertisingImageUpdateException(
+                    "Failed to read uploaded ad image: " + e.getMessage(),
+                    e
+            );
         }
     }
 
