@@ -1,0 +1,1 @@
+docker compose -f community-compose.yaml up -d --pull always
