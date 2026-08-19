@@ -172,26 +172,23 @@ public class AdvertisingService {
     @Transactional
     public void deleteAdById(Long id) {
         Advertising ad = advertisingRepository.findById(id)
-                .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
+                .orElseThrow(() ->
+                        new AdvertisingNotFoundException(
+                                ExceptionMessages.formatAdNotFound(id)
+                        )
+                );
 
-        String imageId = ad.getImageFileId();
+        String imageFileId = ad.getImageFileId();
 
-        // 1. Сначала удаляем запись из БД
-        advertisingRepository.deleteById(id);
-        log.info("Successfully deleted ad record with ID: {}", id);
+        advertisingRepository.delete(ad);
 
-        // 2. ТОЛЬКО ПОСЛЕ успешного удаления из БД удаляем файл
-        if (imageId != null && !imageId.isEmpty()) {
-            try {
-                fileService.delete(imageId);
-                log.info("Successfully deleted file for ad ID: {}, fileId: {}", id, imageId);
-            } catch (Exception e) {
-                // Если не удалось удалить файл - логируем, но не откатываем транзакцию
-                // Файл остается как "сирота" для последующей очистки
-                log.warn("Failed to delete file for ad ID: {}. File orphaned for manual cleanup. fileId: {}",
-                        id, imageId, e);
-            }
-        }
+        fileReplacementCoordinator.deleteAfterCommit(imageFileId);
+
+        log.info(
+                "Ad scheduled for deletion: {}, imageFileId: {}",
+                id,
+                imageFileId
+        );
     }
 
     @Transactional

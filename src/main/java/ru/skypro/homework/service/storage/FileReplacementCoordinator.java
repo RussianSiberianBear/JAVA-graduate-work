@@ -84,4 +84,40 @@ public class FileReplacementCoordinator {
                 }
         );
     }
+
+    public void deleteAfterCommit(String fileId) {
+        if (!StringUtils.hasText(fileId)) {
+            return;
+        }
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            throw new IllegalStateException(
+                    "Transaction synchronization is not active"
+            );
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            fileService.delete(fileId);
+
+                            log.info(
+                                    "File deleted after transaction commit: {}",
+                                    fileId
+                            );
+                        } catch (Exception e) {
+                            log.warn(
+                                    "Failed to delete file after transaction commit: {}. " +
+                                            "Scheduled cleanup will remove it later.",
+                                    fileId,
+                                    e
+                            );
+                        }
+                    }
+                }
+        );
+    }
 }
