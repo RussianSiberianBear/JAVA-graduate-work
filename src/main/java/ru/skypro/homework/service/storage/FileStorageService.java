@@ -8,11 +8,6 @@ public interface FileStorageService {
 
     StoredFile get(String fileId);
 
-    StoredFileInfo replace(
-            String fileId,
-            FileUploadRequest request
-    );
-
     void delete(String fileId);
 
     boolean exists(String fileId);

@@ -74,51 +74,6 @@ public class AlfrescoFileStorageService implements FileStorageService {
     }
 
     @Override
-    public StoredFileInfo replace(String fileId, FileUploadRequest request) {
-        try {
-            byte[] contentBytes = request.content().readAllBytes();
-
-            // 1. Сначала загружаем НОВЫЙ файл (не удаляя старый)
-            MultipartBodyBuilder body = new MultipartBodyBuilder();
-            body.part(
-                    "filedata",
-                    new ByteArrayResource(contentBytes) {
-                        @Override
-                        public String getFilename() {
-                            return request.fileName();
-                        }
-                    }
-            ).contentType(MediaType.parseMediaType(request.contentType()));
-
-            body.part("name", request.fileName());
-            body.part("nodeType", "cm:content");
-            body.part("autoRename", "true");
-
-            AlfrescoResponse response = client.post()
-                    .uri(API + "/{folderId}/children", properties.folderId()) // Убираем overwrite
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body.build())
-                    .retrieve()
-                    .body(AlfrescoResponse.class);
-
-            if (response == null || response.entry() == null) {
-                throw new FileStorageException("Failed to replace file: empty response from Alfresco");
-            }
-
-            // 2. Возвращаем информацию о НОВОМ файле
-            // Старый файл НЕ УДАЛЯЕМ здесь!
-            return toInfo(response.entry());
-
-        } catch (IOException e) {
-            throw new FileStorageException("Failed to read file content for replace: " + e.getMessage(), e);
-        } catch (HttpClientErrorException e) {
-            throw new FileStorageException("Failed to replace file in Alfresco: " + e.getMessage(), e);
-        } catch (Exception e) {
-            throw new FileStorageException("Unexpected error during file replace: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
     public StoredFileInfo getInfo(String fileId) {
         try {
             AlfrescoResponse response = client.get()
