@@ -21,6 +21,7 @@ import ru.skypro.homework.model.User;
 import ru.skypro.homework.repository.AdvertisingRepository;
 import ru.skypro.homework.repository.UserRepository;
 import ru.skypro.homework.security.SecurityHelper;
+import ru.skypro.homework.service.storage.FileReplacementCoordinator;
 import ru.skypro.homework.service.storage.FileStorageService;
 import ru.skypro.homework.service.storage.FileUploadRequest;
 import ru.skypro.homework.service.storage.StoredFileInfo;
@@ -33,25 +34,31 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdvertisingServiceTest {
 
     // ===== КОНСТАНТЫ =====
+
     private static final Long AD_ID = 1L;
     private static final Long NON_EXISTENT_AD_ID = 999L;
     private static final Long USER_ID = 1L;
+
     private static final String USER_EMAIL = "user@mail.com";
     private static final String USER_FIRST_NAME = "John";
     private static final String USER_LAST_NAME = "Doe";
     private static final String USER_PHONE = "+79991234567";
+
     private static final String AD_TITLE = "Test Ad";
     private static final String AD_DESCRIPTION = "Test Description";
     private static final Integer AD_PRICE = 100;
+
     private static final String IMAGE_FILE_ID = "image123";
     private static final String NEW_IMAGE_FILE_ID = "image456";
+
     private static final String FILE_NAME = "image.jpg";
     private static final String FILE_CONTENT_TYPE = "image/jpeg";
     private static final long FILE_SIZE = 1024L;
@@ -72,10 +79,14 @@ class AdvertisingServiceTest {
     private FileStorageService fileStorageService;
 
     @Mock
+    private FileReplacementCoordinator fileReplacementCoordinator;
+
+    @Mock
     private MultipartFile multipartFile;
 
     @InjectMocks
     private AdvertisingService advertisingService;
+
 
     // ===== МЕТОДЫ-ФАБРИКИ =====
 
@@ -86,22 +97,29 @@ class AdvertisingServiceTest {
         user.setFirstName(USER_FIRST_NAME);
         user.setLastName(USER_LAST_NAME);
         user.setPhone(USER_PHONE);
+
         return user;
     }
 
     private Advertising createDefaultAdvertising() {
         Advertising ad = new Advertising();
+
         ad.setId(AD_ID);
         ad.setTitle(AD_TITLE);
         ad.setDescription(AD_DESCRIPTION);
         ad.setPrice(AD_PRICE);
         ad.setImageFileId(IMAGE_FILE_ID);
         ad.setAuthor(createDefaultUser());
+
         return ad;
     }
 
     private CreateOrUpdateAd createDefaultCreateOrUpdateAd() {
-        return new CreateOrUpdateAd(AD_PRICE, AD_TITLE, AD_DESCRIPTION);
+        return new CreateOrUpdateAd(
+                AD_PRICE,
+                AD_TITLE,
+                AD_DESCRIPTION
+        );
     }
 
     private AdvertisingOneResponseDto createDefaultAdvertisingOneResponseDto() {
@@ -129,262 +147,459 @@ class AdvertisingServiceTest {
     }
 
     private StoredFileInfo createDefaultStoredFileInfo() {
-        return new StoredFileInfo(IMAGE_FILE_ID, FILE_NAME, FILE_CONTENT_TYPE, FILE_SIZE);
+        return new StoredFileInfo(
+                IMAGE_FILE_ID,
+                FILE_NAME,
+                FILE_CONTENT_TYPE,
+                FILE_SIZE
+        );
     }
 
     private StoredFileInfo createNewStoredFileInfo() {
-        return new StoredFileInfo(NEW_IMAGE_FILE_ID, "new_image.jpg", FILE_CONTENT_TYPE, FILE_SIZE);
+        return new StoredFileInfo(
+                NEW_IMAGE_FILE_ID,
+                "new_image.jpg",
+                FILE_CONTENT_TYPE,
+                FILE_SIZE
+        );
     }
+
 
     // ===== ТЕСТЫ ДЛЯ findAll =====
 
     @Test
     void findAll_Success_Test() {
         Advertising ad1 = createDefaultAdvertising();
+
         Advertising ad2 = createDefaultAdvertising();
         ad2.setId(2L);
         ad2.setTitle("Test Ad 2");
 
         List<Advertising> ads = Arrays.asList(ad1, ad2);
 
-        AdvertisingOneResponseDto dto1 = createDefaultAdvertisingOneResponseDto();
-        AdvertisingOneResponseDto dto2 = new AdvertisingOneResponseDto(
-                2L, USER_ID, "/images/ads/image2.jpg", 200, "Test Ad 2"
-        );
+        AdvertisingOneResponseDto dto1 =
+                createDefaultAdvertisingOneResponseDto();
 
-        when(advertisingRepository.findAll()).thenReturn(ads);
-        when(advertisingMapper.toResponse(ad1)).thenReturn(dto1);
-        when(advertisingMapper.toResponse(ad2)).thenReturn(dto2);
+        AdvertisingOneResponseDto dto2 =
+                new AdvertisingOneResponseDto(
+                        2L,
+                        USER_ID,
+                        "/images/ads/image2.jpg",
+                        200,
+                        "Test Ad 2"
+                );
 
-        AdvertisingAllResponseDto result = advertisingService.findAll();
+        when(advertisingRepository.findAll())
+                .thenReturn(ads);
+
+        when(advertisingMapper.toResponse(ad1))
+                .thenReturn(dto1);
+
+        when(advertisingMapper.toResponse(ad2))
+                .thenReturn(dto2);
+
+        AdvertisingAllResponseDto result =
+                advertisingService.findAll();
 
         assertThat(result).isNotNull();
         assertThat(result.count()).isEqualTo(2);
         assertThat(result.results()).hasSize(2);
 
-        verify(advertisingRepository, times(1)).findAll();
-        verify(advertisingMapper, times(2)).toResponse(any(Advertising.class));
+        verify(advertisingRepository, times(1))
+                .findAll();
+
+        verify(advertisingMapper, times(2))
+                .toResponse(any(Advertising.class));
     }
 
     @Test
     void findAll_EmptyList_Test() {
-        when(advertisingRepository.findAll()).thenReturn(List.of());
+        when(advertisingRepository.findAll())
+                .thenReturn(List.of());
 
-        AdvertisingAllResponseDto result = advertisingService.findAll();
+        AdvertisingAllResponseDto result =
+                advertisingService.findAll();
 
         assertThat(result).isNotNull();
         assertThat(result.count()).isEqualTo(0);
         assertThat(result.results()).isEmpty();
 
-        verify(advertisingRepository, times(1)).findAll();
-        verify(advertisingMapper, never()).toResponse(any());
+        verify(advertisingRepository, times(1))
+                .findAll();
+
+        verify(advertisingMapper, never())
+                .toResponse(any());
     }
+
 
     // ===== ТЕСТЫ ДЛЯ createAds =====
 
     @Test
     void createAds_Success_Test() throws IOException {
-        CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
+        CreateOrUpdateAd properties =
+                createDefaultCreateOrUpdateAd();
+
         User user = createDefaultUser();
         Advertising ad = createDefaultAdvertising();
-        AdvertisingOneResponseDto expected = createDefaultAdvertisingOneResponseDto();
-        StoredFileInfo storedFileInfo = createDefaultStoredFileInfo();
 
-        when(multipartFile.getOriginalFilename()).thenReturn(FILE_NAME);
-        when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
-        when(multipartFile.getSize()).thenReturn(FILE_SIZE);
-        when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
+        AdvertisingOneResponseDto expected =
+                createDefaultAdvertisingOneResponseDto();
 
-        when(userRepository.findByEmail(USER_EMAIL)).thenReturn(Optional.of(user));
-        when(advertisingMapper.toEntity(properties)).thenReturn(ad);
-        when(fileStorageService.upload(any(FileUploadRequest.class))).thenReturn(storedFileInfo);
-        when(advertisingRepository.save(ad)).thenReturn(ad);
-        when(advertisingMapper.toResponse(ad)).thenReturn(expected);
+        StoredFileInfo storedFileInfo =
+                createDefaultStoredFileInfo();
 
-        AdvertisingOneResponseDto result = advertisingService.createAds(USER_EMAIL, properties, multipartFile);
+        when(multipartFile.getOriginalFilename())
+                .thenReturn(FILE_NAME);
+
+        when(multipartFile.getContentType())
+                .thenReturn(FILE_CONTENT_TYPE);
+
+        when(multipartFile.getSize())
+                .thenReturn(FILE_SIZE);
+
+        when(multipartFile.getInputStream())
+                .thenReturn(mock(InputStream.class));
+
+        when(userRepository.findByEmail(USER_EMAIL))
+                .thenReturn(Optional.of(user));
+
+        when(advertisingMapper.toEntity(properties))
+                .thenReturn(ad);
+
+        when(fileStorageService.upload(
+                any(FileUploadRequest.class)
+        )).thenReturn(storedFileInfo);
+
+        when(advertisingRepository.save(ad))
+                .thenReturn(ad);
+
+        when(advertisingMapper.toResponse(ad))
+                .thenReturn(expected);
+
+        AdvertisingOneResponseDto result =
+                advertisingService.createAds(
+                        USER_EMAIL,
+                        properties,
+                        multipartFile
+                );
 
         assertThat(result).isNotNull();
         assertThat(result.pk()).isEqualTo(AD_ID);
 
-        verify(userRepository, times(1)).findByEmail(USER_EMAIL);
-        verify(advertisingMapper, times(1)).toEntity(properties);
-        verify(fileStorageService, times(1)).upload(any(FileUploadRequest.class));
+        verify(userRepository, times(1))
+                .findByEmail(USER_EMAIL);
 
-        // ОДИН save! (запись создается сразу с ID файла)
-        verify(advertisingRepository, times(1)).save(ad);
-        verify(advertisingMapper, times(1)).toResponse(ad);
+        verify(advertisingMapper, times(1))
+                .toEntity(properties);
+
+        verify(fileStorageService, times(1))
+                .upload(any(FileUploadRequest.class));
+
+        verify(advertisingRepository, times(1))
+                .save(ad);
+
+        verify(advertisingMapper, times(1))
+                .toResponse(ad);
     }
 
     @Test
     void createAds_UserNotFound_Test() throws IOException {
-        CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
+        CreateOrUpdateAd properties =
+                createDefaultCreateOrUpdateAd();
 
-        when(userRepository.findByEmail(USER_EMAIL)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(USER_EMAIL))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advertisingService.createAds(USER_EMAIL, properties, multipartFile))
+        assertThatThrownBy(
+                () -> advertisingService.createAds(
+                        USER_EMAIL,
+                        properties,
+                        multipartFile
+                )
+        )
                 .isInstanceOf(UsernameNotFoundException.class)
-                .hasMessage(ExceptionMessages.formatUserNotFound(USER_EMAIL));
+                .hasMessage(
+                        ExceptionMessages.formatUserNotFound(USER_EMAIL)
+                );
 
-        verify(userRepository, times(1)).findByEmail(USER_EMAIL);
-        verify(advertisingMapper, never()).toEntity(any());
-        verify(fileStorageService, never()).upload(any());
-        verify(advertisingRepository, never()).save(any());
+        verify(userRepository, times(1))
+                .findByEmail(USER_EMAIL);
+
+        verify(advertisingMapper, never())
+                .toEntity(any());
+
+        verify(fileStorageService, never())
+                .upload(any());
+
+        verify(advertisingRepository, never())
+                .save(any());
     }
 
     @Test
-    void createAds_WhenFileStorageThrowsRuntimeException_Test() throws IOException {
-        CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
+    void createAds_WhenFileStorageThrowsRuntimeException_Test()
+            throws IOException {
+
+        CreateOrUpdateAd properties =
+                createDefaultCreateOrUpdateAd();
+
         User user = createDefaultUser();
         Advertising ad = createDefaultAdvertising();
 
-        when(multipartFile.getOriginalFilename()).thenReturn(FILE_NAME);
-        when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
-        when(multipartFile.getSize()).thenReturn(FILE_SIZE);
-        when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
+        when(multipartFile.getOriginalFilename())
+                .thenReturn(FILE_NAME);
 
-        when(userRepository.findByEmail(USER_EMAIL)).thenReturn(Optional.of(user));
-        when(advertisingMapper.toEntity(properties)).thenReturn(ad);
+        when(multipartFile.getContentType())
+                .thenReturn(FILE_CONTENT_TYPE);
 
-        // Мокаем ошибку при загрузке файла
-        when(fileStorageService.upload(any(FileUploadRequest.class)))
-                .thenThrow(new RuntimeException("File upload failed"));
+        when(multipartFile.getSize())
+                .thenReturn(FILE_SIZE);
 
-        // Ожидаем исключение
-        assertThatThrownBy(() -> advertisingService.createAds(USER_EMAIL, properties, multipartFile))
+        when(multipartFile.getInputStream())
+                .thenReturn(mock(InputStream.class));
+
+        when(userRepository.findByEmail(USER_EMAIL))
+                .thenReturn(Optional.of(user));
+
+        when(advertisingMapper.toEntity(properties))
+                .thenReturn(ad);
+
+        when(fileStorageService.upload(
+                any(FileUploadRequest.class)
+        )).thenThrow(
+                new RuntimeException("File upload failed")
+        );
+
+        assertThatThrownBy(
+                () -> advertisingService.createAds(
+                        USER_EMAIL,
+                        properties,
+                        multipartFile
+                )
+        )
                 .isInstanceOf(AdvertisingCreationException.class)
-                .hasMessage("Failed to create ad: File upload failed");
+                .hasMessage(
+                        "Failed to create ad: File upload failed"
+                );
 
-        // Проверяем вызовы
-        verify(userRepository, times(1)).findByEmail(USER_EMAIL);
-        verify(advertisingMapper, times(1)).toEntity(properties);
-        verify(fileStorageService, times(1)).upload(any(FileUploadRequest.class));
+        verify(userRepository, times(1))
+                .findByEmail(USER_EMAIL);
 
-        // save НЕ вызывался, потому что файл не загрузился
-        verify(advertisingRepository, never()).save(ad);
+        verify(advertisingMapper, times(1))
+                .toEntity(properties);
 
-        // deleteById НЕ вызывался, потому что запись не создавалась
-        verify(advertisingRepository, never()).deleteById(any());
+        verify(fileStorageService, times(1))
+                .upload(any(FileUploadRequest.class));
+
+        verify(advertisingRepository, never())
+                .save(ad);
+
+        verify(advertisingRepository, never())
+                .deleteById(any());
     }
+
 
     // ===== ТЕСТЫ ДЛЯ updateById =====
 
     @Test
     void updateById_Success_Test() {
         Long adId = AD_ID;
-        CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
-        Advertising existingAd = createDefaultAdvertising();
-        AdvertisingOneResponseDto expected = createDefaultAdvertisingOneResponseDto();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(existingAd));
-        when(advertisingRepository.save(existingAd)).thenReturn(existingAd);
-        when(advertisingMapper.toResponse(existingAd)).thenReturn(expected);
+        CreateOrUpdateAd properties =
+                createDefaultCreateOrUpdateAd();
 
-        AdvertisingOneResponseDto result = advertisingService.updateById(adId, properties);
+        Advertising existingAd =
+                createDefaultAdvertising();
+
+        AdvertisingOneResponseDto expected =
+                createDefaultAdvertisingOneResponseDto();
+
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(existingAd));
+
+        when(advertisingRepository.save(existingAd))
+                .thenReturn(existingAd);
+
+        when(advertisingMapper.toResponse(existingAd))
+                .thenReturn(expected);
+
+        AdvertisingOneResponseDto result =
+                advertisingService.updateById(
+                        adId,
+                        properties
+                );
 
         assertThat(result).isNotNull();
         assertThat(result.pk()).isEqualTo(AD_ID);
 
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(advertisingMapper, times(1)).updateEntity(properties, existingAd);
-        verify(advertisingRepository, times(1)).save(existingAd);
-        verify(advertisingMapper, times(1)).toResponse(existingAd);
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(advertisingMapper, times(1))
+                .updateEntity(properties, existingAd);
+
+        verify(advertisingRepository, times(1))
+                .save(existingAd);
+
+        verify(advertisingMapper, times(1))
+                .toResponse(existingAd);
     }
 
     @Test
     void updateById_AdNotFound_Test() {
         Long adId = NON_EXISTENT_AD_ID;
-        CreateOrUpdateAd properties = createDefaultCreateOrUpdateAd();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.empty());
+        CreateOrUpdateAd properties =
+                createDefaultCreateOrUpdateAd();
 
-        assertThatThrownBy(() -> advertisingService.updateById(adId, properties))
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(
+                () -> advertisingService.updateById(
+                        adId,
+                        properties
+                )
+        )
                 .isInstanceOf(AdvertisingNotFoundException.class)
-                .hasMessage(ExceptionMessages.formatAdNotFound(adId));
+                .hasMessage(
+                        ExceptionMessages.formatAdNotFound(adId)
+                );
 
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(advertisingMapper, never()).updateEntity(any(), any());
-        verify(advertisingRepository, never()).save(any());
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(advertisingMapper, never())
+                .updateEntity(any(), any());
+
+        verify(advertisingRepository, never())
+                .save(any());
     }
+
 
     // ===== ТЕСТЫ ДЛЯ findAllByUserId =====
 
     @Test
     void findAllByUserId_Success_Test() {
         Long userId = USER_ID;
+
         Advertising ad1 = createDefaultAdvertising();
+
         Advertising ad2 = createDefaultAdvertising();
         ad2.setId(2L);
 
-        List<Advertising> ads = Arrays.asList(ad1, ad2);
+        List<Advertising> ads =
+                Arrays.asList(ad1, ad2);
 
-        AdvertisingOneResponseDto dto1 = createDefaultAdvertisingOneResponseDto();
-        AdvertisingOneResponseDto dto2 = new AdvertisingOneResponseDto(
-                2L, userId, "/images/ads/image2.jpg", 200, "Test Ad 2"
-        );
+        AdvertisingOneResponseDto dto1 =
+                createDefaultAdvertisingOneResponseDto();
 
-        when(advertisingRepository.findAllByAuthorId(userId)).thenReturn(ads);
-        when(advertisingMapper.toResponse(ad1)).thenReturn(dto1);
-        when(advertisingMapper.toResponse(ad2)).thenReturn(dto2);
+        AdvertisingOneResponseDto dto2 =
+                new AdvertisingOneResponseDto(
+                        2L,
+                        userId,
+                        "/images/ads/image2.jpg",
+                        200,
+                        "Test Ad 2"
+                );
 
-        AdvertisingAllResponseDto result = advertisingService.findAllByUserId(userId);
+        when(advertisingRepository.findAllByAuthorId(userId))
+                .thenReturn(ads);
+
+        when(advertisingMapper.toResponse(ad1))
+                .thenReturn(dto1);
+
+        when(advertisingMapper.toResponse(ad2))
+                .thenReturn(dto2);
+
+        AdvertisingAllResponseDto result =
+                advertisingService.findAllByUserId(userId);
 
         assertThat(result).isNotNull();
         assertThat(result.count()).isEqualTo(2);
         assertThat(result.results()).hasSize(2);
 
-        verify(advertisingRepository, times(1)).findAllByAuthorId(userId);
-        verify(advertisingMapper, times(2)).toResponse(any(Advertising.class));
+        verify(advertisingRepository, times(1))
+                .findAllByAuthorId(userId);
+
+        verify(advertisingMapper, times(2))
+                .toResponse(any(Advertising.class));
     }
 
     @Test
     void findAllByUserId_EmptyList_Test() {
         Long userId = USER_ID;
 
-        when(advertisingRepository.findAllByAuthorId(userId)).thenReturn(List.of());
+        when(advertisingRepository.findAllByAuthorId(userId))
+                .thenReturn(List.of());
 
-        AdvertisingAllResponseDto result = advertisingService.findAllByUserId(userId);
+        AdvertisingAllResponseDto result =
+                advertisingService.findAllByUserId(userId);
 
         assertThat(result).isNotNull();
         assertThat(result.count()).isEqualTo(0);
         assertThat(result.results()).isEmpty();
 
-        verify(advertisingRepository, times(1)).findAllByAuthorId(userId);
-        verify(advertisingMapper, never()).toResponse(any());
+        verify(advertisingRepository, times(1))
+                .findAllByAuthorId(userId);
+
+        verify(advertisingMapper, never())
+                .toResponse(any());
     }
+
 
     // ===== ТЕСТЫ ДЛЯ getAdById =====
 
     @Test
     void getAdById_Success_Test() {
         Long adId = AD_ID;
-        Advertising ad = createDefaultAdvertising();
-        AdvertisingWithAuthorDto expected = createDefaultAdvertisingWithAuthorDto();
 
-        when(advertisingRepository.findWithAuthorById(adId)).thenReturn(Optional.of(ad));
-        when(advertisingMapper.toResponseWithAuthor(ad)).thenReturn(expected);
+        Advertising ad =
+                createDefaultAdvertising();
 
-        AdvertisingWithAuthorDto result = advertisingService.getAdById(adId);
+        AdvertisingWithAuthorDto expected =
+                createDefaultAdvertisingWithAuthorDto();
+
+        when(advertisingRepository.findWithAuthorById(adId))
+                .thenReturn(Optional.of(ad));
+
+        when(advertisingMapper.toResponseWithAuthor(ad))
+                .thenReturn(expected);
+
+        AdvertisingWithAuthorDto result =
+                advertisingService.getAdById(adId);
 
         assertThat(result).isNotNull();
         assertThat(result.pk()).isEqualTo(AD_ID);
 
-        verify(advertisingRepository, times(1)).findWithAuthorById(adId);
-        verify(advertisingMapper, times(1)).toResponseWithAuthor(ad);
+        verify(advertisingRepository, times(1))
+                .findWithAuthorById(adId);
+
+        verify(advertisingMapper, times(1))
+                .toResponseWithAuthor(ad);
     }
 
     @Test
     void getAdById_AdNotFound_Test() {
         Long adId = NON_EXISTENT_AD_ID;
 
-        when(advertisingRepository.findWithAuthorById(adId)).thenReturn(Optional.empty());
+        when(advertisingRepository.findWithAuthorById(adId))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advertisingService.getAdById(adId))
+        assertThatThrownBy(
+                () -> advertisingService.getAdById(adId)
+        )
                 .isInstanceOf(AdvertisingNotFoundException.class)
-                .hasMessage(ExceptionMessages.formatAdNotFound(adId));
+                .hasMessage(
+                        ExceptionMessages.formatAdNotFound(adId)
+                );
 
-        verify(advertisingRepository, times(1)).findWithAuthorById(adId);
-        verify(advertisingMapper, never()).toResponseWithAuthor(any());
+        verify(advertisingRepository, times(1))
+                .findWithAuthorById(adId);
+
+        verify(advertisingMapper, never())
+                .toResponseWithAuthor(any());
     }
+
 
     // ===== ТЕСТЫ ДЛЯ deleteAdById =====
 
@@ -393,159 +608,304 @@ class AdvertisingServiceTest {
         Long adId = AD_ID;
         Advertising ad = createDefaultAdvertising();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
-        doNothing().when(advertisingRepository).deleteById(adId);
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(ad));
+
+        doNothing()
+                .when(advertisingRepository)
+                .deleteById(adId);
 
         advertisingService.deleteAdById(adId);
 
-        verify(advertisingRepository, times(1)).deleteById(adId);
+        verify(advertisingRepository, times(1))
+                .deleteById(adId);
     }
+
 
     // ===== ТЕСТЫ ДЛЯ updateAdsImage =====
 
     @Test
     void updateAdsImage_Success_Test() throws IOException {
         Long adId = AD_ID;
-        Advertising ad = createDefaultAdvertising();
-        StoredFileInfo newStoredFileInfo = createNewStoredFileInfo();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
-        when(multipartFile.getOriginalFilename()).thenReturn("new_image.jpg");
-        when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
-        when(multipartFile.getSize()).thenReturn(FILE_SIZE);
-        when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
-        when(fileStorageService.replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class)))
-                .thenReturn(newStoredFileInfo);
-        when(advertisingRepository.save(ad)).thenReturn(ad);
+        Advertising ad =
+                createDefaultAdvertising();
 
-        advertisingService.updateAdsImage(adId, multipartFile);
+        String oldFileId =
+                ad.getImageFileId();
 
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(fileStorageService, times(1)).replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class));
-        verify(advertisingRepository, times(1)).save(ad);
-        assertThat(ad.getImageFileId()).isEqualTo(NEW_IMAGE_FILE_ID);
+        StoredFileInfo newStoredFileInfo =
+                createNewStoredFileInfo();
+
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(ad));
+
+        when(multipartFile.getOriginalFilename())
+                .thenReturn("new_image.jpg");
+
+        when(multipartFile.getContentType())
+                .thenReturn(FILE_CONTENT_TYPE);
+
+        when(multipartFile.getSize())
+                .thenReturn(FILE_SIZE);
+
+        when(multipartFile.getInputStream())
+                .thenReturn(mock(InputStream.class));
+
+        when(
+                fileReplacementCoordinator
+                        .uploadAndRegisterReplacement(
+                                any(FileUploadRequest.class),
+                                eq(oldFileId)
+                        )
+        ).thenReturn(newStoredFileInfo);
+
+        advertisingService.updateAdsImage(
+                adId,
+                multipartFile
+        );
+
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(fileReplacementCoordinator, times(1))
+                .uploadAndRegisterReplacement(
+                        any(FileUploadRequest.class),
+                        eq(oldFileId)
+                );
+
+        // Сущность managed внутри @Transactional:
+        // отдельный save() для updateAdsImage не нужен.
+        verify(advertisingRepository, never())
+                .save(any(Advertising.class));
+
+        assertThat(ad.getImageFileId())
+                .isEqualTo(NEW_IMAGE_FILE_ID);
     }
 
     @Test
     void updateAdsImage_AdNotFound_Test() {
         Long adId = NON_EXISTENT_AD_ID;
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.empty());
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advertisingService.updateAdsImage(adId, multipartFile))
+        assertThatThrownBy(
+                () -> advertisingService.updateAdsImage(
+                        adId,
+                        multipartFile
+                )
+        )
                 .isInstanceOf(AdvertisingNotFoundException.class)
-                .hasMessage(ExceptionMessages.formatAdNotFound(adId));
+                .hasMessage(
+                        ExceptionMessages.formatAdNotFound(adId)
+                );
 
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(fileStorageService, never()).replace(anyString(), any());
-        verify(advertisingRepository, never()).save(any());
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verifyNoInteractions(fileReplacementCoordinator);
+
+        verify(advertisingRepository, never())
+                .save(any(Advertising.class));
     }
 
     @Test
-    void updateAdsImage_WhenReplaceThrowsException_ShouldRestoreOldImage_Test() throws IOException {
+    void updateAdsImage_WhenFileReplacementFails_Test()
+            throws IOException {
+
         Long adId = AD_ID;
-        Advertising ad = createDefaultAdvertising();
-        String oldImageId = ad.getImageFileId();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
-        when(multipartFile.getOriginalFilename()).thenReturn("new_image.jpg");
-        when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
-        when(multipartFile.getSize()).thenReturn(FILE_SIZE);
-        when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
-        when(fileStorageService.replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class)))
-                .thenThrow(new RuntimeException("Replace failed"));
+        Advertising ad =
+                createDefaultAdvertising();
 
-        // Ожидаем, что метод выбросит исключение
-        assertThatThrownBy(() -> advertisingService.updateAdsImage(adId, multipartFile))
-                .isInstanceOf(AdvertisingImageUpdateException.class)
-                .hasMessage("Failed to update ad image: Replace failed");
+        String oldFileId =
+                ad.getImageFileId();
 
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(fileStorageService, times(1)).replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class));
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(ad));
 
-        // save НЕ вызывается (так как ошибка произошла до сохранения)
-        verify(advertisingRepository, never()).save(ad);
+        when(multipartFile.getOriginalFilename())
+                .thenReturn("new_image.jpg");
 
-        // ID не изменился (объект не сохранялся в БД)
-        assertThat(ad.getImageFileId()).isEqualTo(oldImageId);
+        when(multipartFile.getContentType())
+                .thenReturn(FILE_CONTENT_TYPE);
+
+        when(multipartFile.getSize())
+                .thenReturn(FILE_SIZE);
+
+        when(multipartFile.getInputStream())
+                .thenReturn(mock(InputStream.class));
+
+        when(
+                fileReplacementCoordinator
+                        .uploadAndRegisterReplacement(
+                                any(FileUploadRequest.class),
+                                eq(oldFileId)
+                        )
+        ).thenThrow(
+                new RuntimeException("File storage error")
+        );
+
+        assertThatThrownBy(
+                () -> advertisingService.updateAdsImage(
+                        adId,
+                        multipartFile
+                )
+        )
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("File storage error");
+
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(fileReplacementCoordinator, times(1))
+                .uploadAndRegisterReplacement(
+                        any(FileUploadRequest.class),
+                        eq(oldFileId)
+                );
+
+        verify(advertisingRepository, never())
+                .save(any(Advertising.class));
+
+        // Ошибка произошла до setImageFileId(),
+        // поэтому старый идентификатор остается без изменений.
+        assertThat(ad.getImageFileId())
+                .isEqualTo(oldFileId);
     }
 
     @Test
-    void updateAdsImage_WhenFileStorageThrowsRuntimeException_Test() throws IOException {
+    void updateAdsImage_WhenMultipartFileThrowsIOException_Test()
+            throws IOException {
+
         Long adId = AD_ID;
-        Advertising ad = createDefaultAdvertising();
-        String oldFileId = ad.getImageFileId();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
-        when(multipartFile.getOriginalFilename()).thenReturn("new_image.jpg");
-        when(multipartFile.getContentType()).thenReturn(FILE_CONTENT_TYPE);
-        when(multipartFile.getSize()).thenReturn(FILE_SIZE);
-        when(multipartFile.getInputStream()).thenReturn(mock(InputStream.class));
+        Advertising ad =
+                createDefaultAdvertising();
 
-        // Мокаем, что replace выбрасывает исключение
-        when(fileStorageService.replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class)))
-                .thenThrow(new RuntimeException("File storage error"));
+        String oldFileId =
+                ad.getImageFileId();
 
-        // Ожидаем, что метод выбросит AdvertisingImageUpdateException
-        assertThatThrownBy(() -> advertisingService.updateAdsImage(adId, multipartFile))
-                .isInstanceOf(AdvertisingImageUpdateException.class)
-                .hasMessage("Failed to update ad image: File storage error");
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(ad));
 
-        // Проверяем вызовы
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(fileStorageService, times(1)).replace(eq(IMAGE_FILE_ID), any(FileUploadRequest.class));
+        when(multipartFile.getOriginalFilename())
+                .thenReturn("new_image.jpg");
 
-        // save НЕ вызывается (так как ошибка была до сохранения)
-        verify(advertisingRepository, never()).save(ad);
+        when(multipartFile.getContentType())
+                .thenReturn(FILE_CONTENT_TYPE);
 
-        // ID не изменился (объект не сохранялся в БД)
-        assertThat(ad.getImageFileId()).isEqualTo(oldFileId);
+        when(multipartFile.getSize())
+                .thenReturn(FILE_SIZE);
+
+        when(multipartFile.getInputStream())
+                .thenThrow(
+                        new IOException("File processing error")
+                );
+
+        assertThatThrownBy(
+                () -> advertisingService.updateAdsImage(
+                        adId,
+                        multipartFile
+                )
+        )
+                .isInstanceOf(
+                        AdvertisingImageUpdateException.class
+                )
+                .hasMessage(
+                        "Failed to read uploaded ad image: " +
+                                "File processing error"
+                )
+                .hasCauseInstanceOf(IOException.class);
+
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        // IOException произошёл ещё при создании FileUploadRequest,
+        // coordinator вызываться не должен.
+        verifyNoInteractions(fileReplacementCoordinator);
+
+        verify(advertisingRepository, never())
+                .save(any(Advertising.class));
+
+        assertThat(ad.getImageFileId())
+                .isEqualTo(oldFileId);
     }
+
 
     // ===== ТЕСТЫ ДЛЯ isAnotherAuthor =====
 
     @Test
     void isAnotherAuthor_WhenUserIsNotAuthor_Test() {
         Long adId = AD_ID;
-        Advertising ad = createDefaultAdvertising();
+
+        Advertising ad =
+                createDefaultAdvertising();
+
         Long currentUserId = 999L;
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
-        when(securityHelper.getCurrentUserId()).thenReturn(currentUserId);
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(ad));
 
-        boolean result = advertisingService.isAnotherAuthor(adId);
+        when(securityHelper.getCurrentUserId())
+                .thenReturn(currentUserId);
+
+        boolean result =
+                advertisingService.isAnotherAuthor(adId);
 
         assertThat(result).isTrue();
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(securityHelper, times(1)).getCurrentUserId();
+
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(securityHelper, times(1))
+                .getCurrentUserId();
     }
 
     @Test
     void isAnotherAuthor_WhenUserIsAuthor_Test() {
         Long adId = AD_ID;
-        Advertising ad = createDefaultAdvertising();
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.of(ad));
-        when(securityHelper.getCurrentUserId()).thenReturn(USER_ID);
+        Advertising ad =
+                createDefaultAdvertising();
 
-        boolean result = advertisingService.isAnotherAuthor(adId);
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.of(ad));
+
+        when(securityHelper.getCurrentUserId())
+                .thenReturn(USER_ID);
+
+        boolean result =
+                advertisingService.isAnotherAuthor(adId);
 
         assertThat(result).isFalse();
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(securityHelper, times(1)).getCurrentUserId();
+
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(securityHelper, times(1))
+                .getCurrentUserId();
     }
 
     @Test
     void isAnotherAuthor_AdNotFound_Test() {
         Long adId = NON_EXISTENT_AD_ID;
 
-        when(advertisingRepository.findById(adId)).thenReturn(Optional.empty());
+        when(advertisingRepository.findById(adId))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> advertisingService.isAnotherAuthor(adId))
+        assertThatThrownBy(
+                () -> advertisingService.isAnotherAuthor(adId)
+        )
                 .isInstanceOf(AdvertisingNotFoundException.class)
-                .hasMessage(ExceptionMessages.formatAdNotFound(adId));
+                .hasMessage(
+                        ExceptionMessages.formatAdNotFound(adId)
+                );
 
-        verify(advertisingRepository, times(1)).findById(adId);
-        verify(securityHelper, never()).getCurrentUserId();
+        verify(advertisingRepository, times(1))
+                .findById(adId);
+
+        verify(securityHelper, never())
+                .getCurrentUserId();
     }
 }

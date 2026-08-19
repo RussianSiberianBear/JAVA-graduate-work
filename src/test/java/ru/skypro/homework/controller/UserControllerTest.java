@@ -14,12 +14,11 @@ import ru.skypro.homework.dto.Role;
 import ru.skypro.homework.dto.SetPasswordRequestDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
+import ru.skypro.homework.exception.FileStorageException;
 import ru.skypro.homework.exception.InvalidPasswordException;
 import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.UserService;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -240,18 +239,31 @@ class UserControllerTest {
     }
 
     @Test
-    void updateUsersAvatar_IOException_Test() throws Exception {
-        MockMultipartFile image = avatar("avatar.jpg", MediaType.IMAGE_JPEG_VALUE, "fake image content".getBytes());
-        when(securityHelper.getCurrentUsername()).thenReturn(USERNAME);
-        doThrow(new IOException("File processing error"))
-                .when(userService).updateUsersAvatar(eq(USERNAME), any(MultipartFile.class));
+    void updateUsersAvatar_FileStorageException_Test() throws Exception {
+        MockMultipartFile image = avatar(
+                "avatar.jpg",
+                MediaType.IMAGE_JPEG_VALUE,
+                "fake image content".getBytes()
+        );
 
-        mockMvc.perform(multipart("/users/me/image")
-                        .file(image)
-                        .with(request -> {
-                            request.setMethod("PATCH");
-                            return request;
-                        }))
+        when(securityHelper.getCurrentUsername())
+                .thenReturn(USERNAME);
+
+        doThrow(new FileStorageException("Failed to read uploaded avatar"))
+                .when(userService)
+                .updateUsersAvatar(
+                        eq(USERNAME),
+                        any(MultipartFile.class)
+                );
+
+        mockMvc.perform(
+                        multipart("/users/me/image")
+                                .file(image)
+                                .with(request -> {
+                                    request.setMethod("PATCH");
+                                    return request;
+                                })
+                )
                 .andExpect(status().isInternalServerError());
     }
 
