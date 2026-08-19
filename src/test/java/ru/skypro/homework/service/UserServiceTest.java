@@ -39,7 +39,6 @@ class UserServiceTest {
     private static final Long USER_ID = 1L;
     private static final String USER_EMAIL = "user@mail.com";
     private static final String USER_PASSWORD = "encodedPassword123@";
-    private static final String USER_RAW_PASSWORD = "Password123@";
     private static final String USER_FIRST_NAME = "John";
     private static final String USER_LAST_NAME = "Doe";
     private static final String USER_PHONE = "+79991234567";
