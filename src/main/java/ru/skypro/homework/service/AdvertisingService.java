@@ -29,6 +29,14 @@ import ru.skypro.homework.service.storage.StoredFileInfo;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Основной сервис по работе с объявлениями.
+ * <p>
+ * Предоставляет методы для создания, обновления, удаления и получения объявлений,
+ * а также для проверки прав доступа к ним. Сервис управляет транзакциями и координирует
+ * работу с файловым хранилищем, включая замену и удаление файлов.
+ * </p>
+ */
 @Service
 @Slf4j
 public class AdvertisingService {
@@ -40,11 +48,22 @@ public class AdvertisingService {
     private final FileStorageService fileService;
     private final FileReplacementCoordinator fileReplacementCoordinator;
 
+    /**
+     * Конструктор сервиса.
+     *
+     * @param advertisingRepository       репозиторий для работы с объявлениями
+     * @param advertisingMapper           маппер для преобразования сущностей в DTO и обратно
+     * @param userRepository              репозиторий для работы с пользователями
+     * @param securityHelper              помощник для работы с безопасностью и данными текущего пользователя
+     * @param fileStorageService          сервис для работы с файловым хранилищем
+     * @param fileReplacementCoordinator  координатор замены файлов (управление старыми и новыми файлами)
+     */
     public AdvertisingService(AdvertisingRepository advertisingRepository,
                               AdvertisingMapper advertisingMapper,
                               UserRepository userRepository,
                               SecurityHelper securityHelper,
-                              FileStorageService fileStorageService, FileReplacementCoordinator fileReplacementCoordinator) {
+                              FileStorageService fileStorageService,
+                              FileReplacementCoordinator fileReplacementCoordinator) {
         this.advertisingRepository = advertisingRepository;
         this.advertisingMapper = advertisingMapper;
         this.userRepository = userRepository;
@@ -53,6 +72,16 @@ public class AdvertisingService {
         this.fileReplacementCoordinator = fileReplacementCoordinator;
     }
 
+    /**
+     * Возвращает все имеющиеся объявления.
+     * <p>
+     * Метод преобразует найденные сущности объявлений в DTO, формирует ответ с общим количеством
+     * объявлений и списком DTO. При возникновении ошибки выбрасывается {@link AdvertisingRetrievalException}.
+     * </p>
+     *
+     * @return {@link AdvertisingAllResponseDto} с количеством объявлений и списком их DTO
+     * @throws AdvertisingRetrievalException если произошла ошибка при получении объявлений
+     */
     public AdvertisingAllResponseDto findAll() {
         try {
             List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAll()
@@ -66,6 +95,22 @@ public class AdvertisingService {
         }
     }
 
+    /**
+     * Создаёт новое объявление.
+     * <p>
+     * Метод находит пользователя по email, загружает файл в хранилище, создаёт сущность объявления,
+     * сохраняет её в БД и возвращает DTO созданного объявления. Если при загрузке файла возникает ошибка,
+     * сервис пытается откатить загрузку файла. При любых ошибках выбрасывается {@link AdvertisingCreationException}.
+     * </p>
+     *
+     * @param username   email пользователя, создающего объявление
+     * @param properties данные для создания/обновления объявления ({@link CreateOrUpdateAd})
+     * @param file       загружаемый файл изображения
+     * @return DTO созданного объявления ({@link AdvertisingOneResponseDto})
+     * @throws IOException                если произошла ошибка ввода-вывода при работе с файлом
+     * @throws AdvertisingCreationException если не удалось создать объявление (в т. ч. из-за ошибки хранилища)
+     * @throws UsernameNotFoundException  если пользователь с указанным email не найден
+     */
     @Transactional
     public AdvertisingOneResponseDto createAds(String username, CreateOrUpdateAd properties, MultipartFile file) throws IOException {
         User user = userRepository.findByEmail(username)
@@ -115,6 +160,19 @@ public class AdvertisingService {
         }
     }
 
+    /**
+     * Обновляет объявление по его идентификатору.
+     * <p>
+     * Если объявление не найдено, выбрасывается {@link AdvertisingNotFoundException}.
+     * При других ошибках — выбрасывается {@link AdvertisingUpdateException}.
+     * </p>
+     *
+     * @param id         идентификатор объявления
+     * @param properties новые данные для обновления объявления
+     * @return обновлённое объявление в формате DTO ({@link AdvertisingOneResponseDto})
+     * @throws AdvertisingNotFoundException если объявление с указанным ID не найдено
+     * @throws AdvertisingUpdateException  если произошла ошибка при обновлении объявления
+     */
     @Transactional
     public AdvertisingOneResponseDto updateById(Long id, CreateOrUpdateAd properties) {
         try {
@@ -133,6 +191,13 @@ public class AdvertisingService {
         }
     }
 
+    /**
+     * Возвращает все объявления, принадлежащие пользователю с указанным ID.
+     *
+     * @param userId идентификатор пользователя
+     * @return {@link AdvertisingAllResponseDto} с количеством и списком объявлений пользователя
+     * @throws AdvertisingRetrievalException если произошла ошибка при поиске объявлений
+     */
     public AdvertisingAllResponseDto findAllByUserId(Long userId) {
         try {
             List<AdvertisingOneResponseDto> adsListDto = advertisingRepository.findAllByAuthorId(userId)
@@ -146,6 +211,14 @@ public class AdvertisingService {
         }
     }
 
+    /**
+     * Получает объявление по идентификатору вместе с данными автора.
+     *
+     * @param id идентификатор объявления
+     * @return DTO объявления с информацией об авторе ({@link AdvertisingWithAuthorDto})
+     * @throws AdvertisingNotFoundException если объявление не найдено
+     * @throws AdvertisingRetrievalException если произошла другая ошибка при получении объявления
+     */
     public AdvertisingWithAuthorDto getAdById(Long id) {
         try {
             Advertising ad = advertisingRepository.findWithAuthorById(id)
@@ -169,6 +242,16 @@ public class AdvertisingService {
         }
     }
 
+    /**
+     * Удаляет объявление по идентификатору.
+     * <p>
+     * Удаление файла изображения планируется на момент коммита транзакции через
+     * {@link FileReplacementCoordinator#deleteAfterCommit(String)}.
+     * </p>
+     *
+     * @param id идентификатор удаляемого объявления
+     * @throws AdvertisingNotFoundException если объявление не найдено
+     */
     @Transactional
     public void deleteAdById(Long id) {
         Advertising ad = advertisingRepository.findById(id)
@@ -191,6 +274,19 @@ public class AdvertisingService {
         );
     }
 
+    /**
+     * Обновляет изображение объявления.
+     * <p>
+     * Использует координатор замены файлов для загрузки нового изображения и регистрации
+     * его как замены старого. Старое изображение не удаляется сразу, а будет обработано
+     * координатором в соответствии с его логикой.
+     * </p>
+     *
+     * @param id   идентификатор объявления
+     * @param file загружаемый новый файл изображения
+     * @throws AdvertisingImageUpdateException если произошла ошибка при чтении или загрузке файла
+     * @throws AdvertisingNotFoundException    если объявление не найдено
+     */
     @Transactional
     public void updateAdsImage(Long id, MultipartFile file) {
         Advertising ad = advertisingRepository.findById(id)
@@ -236,6 +332,17 @@ public class AdvertisingService {
         }
     }
 
+    /**
+     * Проверяет, является ли текущий пользователь автором объявления.
+     * <p>
+     * Возвращает {@code true}, если автор объявления отличается от текущего пользователя.
+     * </p>
+     *
+     * @param adsId идентификатор объявления
+     * @return {@code true} если автор объявления другой пользователь, иначе {@code false}
+     * @throws AdvertisingNotFoundException если объявление не найдено
+     * @throws AdvertisingRetrievalException если произошла другая ошибка при проверке
+     */
     @Transactional
     public boolean isAnotherAuthor(Long adsId) {
         try {

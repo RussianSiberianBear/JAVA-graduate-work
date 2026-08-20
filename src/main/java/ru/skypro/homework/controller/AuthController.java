@@ -15,6 +15,14 @@ import ru.skypro.homework.dto.Login;
 import ru.skypro.homework.dto.Register;
 import ru.skypro.homework.service.AuthService;
 
+/**
+ * Контроллер для аутентификации и регистрации пользователей.
+ * <p>
+ * Предоставляет REST‑эндпоинты для входа в систему и создания новых учётных записей.
+ * Интегрирован со Swagger для документирования API, использует валидацию входных данных
+ * и делегирует основную логику сервису {@link AuthService}.
+ * </p>
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -23,11 +31,14 @@ public class AuthController {
     private final AuthService authService;
 
     /**
-     * Метод аутентификации пользователя
+     * Выполняет аутентификацию пользователя по логину и паролю.
+     * <p>
+     * При успешной проверке учётных данных возвращает статус 200.
+     * Если логин или пароль неверны — статус 401.
+     * </p>
      *
-     * @param login DTO пользователя (логин и пароль)
-     * @return 200 статус при успешной аутентификации
-     * 401 статус при неуспешной аутентификации
+     * @param login DTO с логином и паролем пользователя
+     * @return {@link ResponseEntity} со статусом 200 при успехе или 401 при ошибке аутентификации
      */
     @PostMapping("/login")
     @Operation(
@@ -40,20 +51,25 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Неверный логин или пароль")
     })
     public ResponseEntity<String> login(@Valid @RequestBody Login login) {
-
+        log.debug("Attempting login for user: {}", login.username());
         if (authService.login(login.username(), login.password())) {
+            log.info("Login successful for user: {}", login.username());
             return ResponseEntity.ok().build();
         } else {
+            log.warn("Login failed for user: {}", login.username());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
     /**
-     * Регистрация нового пользователя
+     * Регистрирует нового пользователя в системе.
+     * <p>
+     * При успешном создании учётной записи возвращает статус 201.
+     * Если данные некорректны или пользователь с таким логином уже существует — статус 400.
+     * </p>
      *
-     * @param register DTO с данными пользователя
-     * @return Статус 201 при успешной регистрации
-     * 400 при неуспешной регистрации
+     * @param register DTO с данными для регистрации нового пользователя
+     * @return {@link ResponseEntity} со статусом 201 при успехе или 400 при ошибке регистрации
      */
     @PostMapping("/register")
     @Operation(
@@ -65,10 +81,12 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Неверные данные запроса или пользователь уже существует")
     })
     public ResponseEntity<String> register(@Valid @RequestBody Register register) {
-
+        log.debug("Attempting registration for user: {}", register.username());
         if (authService.register(register)) {
+            log.info("User registered successfully: {}", register.username());
             return ResponseEntity.status(HttpStatus.CREATED).build();
         } else {
+            log.warn("Registration failed for user: {}", register.username());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }

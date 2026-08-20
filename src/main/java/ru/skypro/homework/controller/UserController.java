@@ -21,6 +21,14 @@ import ru.skypro.homework.service.UserService;
 
 import java.io.IOException;
 
+/**
+ * Контроллер для управления данными пользователя: обновление пароля, получение и частичное обновление профиля,
+ * загрузка аватара.
+ * <p>
+ * Все методы требуют авторизации—проверка выполняется через {@link SecurityHelper}.
+ * Контроллер документирован в Swagger, включает валидацию входных данных и логирование ключевых операций.
+ * </p>
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -31,14 +39,13 @@ public class UserController {
     private final SecurityHelper securityHelper;
 
     /**
-     * Обновление пароля пользователя
+     * Обновляет пароль текущего авторизованного пользователя.
+     * <p>
+     * Для успешного обновления требуется корректный текущий пароль.
+     * </p>
      *
-     * @param request DTO для обновления паролья
-     * @return 200 статус при успешном обновлении пароля,
-     * 400 статус при некорректных данных пароля
-     * 401 статус если пользователь не авторизован
-     * 403 статус если у пользователя не хватает прав на обновление пароля
-     * 404 статус если пользователь не найден в базе данных
+     * @param request DTO с текущим и новым паролем
+     * @return {@link ResponseEntity} со статусом 200 при успехе; возможные ошибки обрабатываются на уровне сервиса
      */
     @PostMapping("/set_password")
     @Operation(
@@ -46,34 +53,29 @@ public class UserController {
             description = "Обновляет пароль текущего авторизованного пользователя"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Пароль успешно обновлен"),
-            @ApiResponse(responseCode = "400", description = "Некорректный пароль",
+            @ApiResponse(responseCode = "200", description = "Пароль успешно обновлён"),
+            @ApiResponse(responseCode = "400", description = "Некорректные данные пароля",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "403", description = "Доступ запрещен"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещён"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
-
-    public ResponseEntity<String> password_update(@RequestBody @Valid SetPasswordRequestDto request) {
-
-
+    public ResponseEntity<String> passwordUpdate(@RequestBody @Valid SetPasswordRequestDto request) {
         String username = securityHelper.getCurrentUsername();
+        log.info("Attempting password update for user: {}", username);
         userService.passwordUpdate(
                 username,
                 request.currentPassword(),
                 request.newPassword()
         );
-
         return ResponseEntity.ok().build();
     }
 
     /**
-     * Получение данных об авторизованном пользователе
+     * Получает данные текущего авторизованного пользователя.
      *
-     * @return Статус 401 при неавторизованном пользователе или
-     * 200 статус и данные авторизованного пользователя
+     * @return {@link ResponseEntity} с {@link UserInfoResponseDto} при успехе
      */
-
     @GetMapping("/me")
     @Operation(
             summary = "Информация о пользователе",
@@ -84,51 +86,51 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<UserInfoResponseDto> getUsersInfo() {
-
-        return ResponseEntity.ok(userService.getUserInfo(securityHelper.getCurrentUsername()));
+        String username = securityHelper.getCurrentUsername();
+        log.debug("Fetching user info for: {}", username);
+        return ResponseEntity.ok(userService.getUserInfo(username));
     }
 
     /**
-     * Обновление информации авторизованного пользователя
+     * Частично обновляет данные профиля текущего авторизованного пользователя (имя, фамилия, телефон и т. п.).
      *
-     * @param request - DTO обновляеммых данных пользователя
-     * @return Статус 401 при неавторизованном пользователе или
-     * 200 статус и обновленные данные авторизованного пользователя
+     * @param request DTO с обновляемыми данными пользователя
+     * @return {@link ResponseEntity} с обновлёнными данными в формате {@link UserUpdateInfoDto}
      */
     @PatchMapping("/me")
     @Operation(
-            summary = "Частичное обновление информация о пользователе",
+            summary = "Частичное обновление информации о пользователе",
             description = "Обновление имени, фамилии, телефона авторизованного пользователя"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Обновленные данные пользователя"),
+            @ApiResponse(responseCode = "200", description = "Данные пользователя обновлены"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<UserUpdateInfoDto> updateUsersInfo(@RequestBody @Valid UserUpdateInfoDto request) {
-
-        return ResponseEntity.ok(userService.updateUser(securityHelper.getCurrentUsername(), request));
+        String username = securityHelper.getCurrentUsername();
+        log.info("Updating user info for: {}", username);
+        return ResponseEntity.ok(userService.updateUser(username, request));
     }
 
     /**
-     * Метод сохраняет или обновляет аватар пользователя
+     * Загружает или обновляет аватар текущего авторизованного пользователя.
      *
-     * @param image - аватар пользователя
-     * @return Статус 200 при успешном обновлении или
-     * статус 401 если пользователь не авторизован
+     * @param image файл изображения аватара
+     * @return {@link ResponseEntity} со статусом 200 при успешной загрузке
      */
     @PatchMapping("/me/image")
     @Operation(
-            summary = "Аватар пользователе",
+            summary = "Обновление аватара пользователя",
             description = "Сохранение или обновление аватара авторизованного пользователя"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Аватар пользователе сохранен"),
+            @ApiResponse(responseCode = "200", description = "Аватар успешно сохранён"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) {
-
-        userService.updateUsersAvatar(securityHelper.getCurrentUsername(), image);
+        String username = securityHelper.getCurrentUsername();
+        log.info("Updating avatar for user: {}, file: {}", username, image.getOriginalFilename());
+        userService.updateUsersAvatar(username, image);
         return ResponseEntity.ok().build();
     }
-
 }

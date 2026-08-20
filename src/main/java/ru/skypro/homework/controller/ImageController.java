@@ -13,16 +13,41 @@ import ru.skypro.homework.service.storage.StoredFile;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Контроллер для работы с изображениями.
+ * <p>
+ * Предоставляет REST‑эндпоинт для получения файлов изображений по их идентификатору.
+ * Контроллер устанавливает соответствующие HTTP‑заголовки: тип контента, кэширование и
+ * заголовок Content‑Disposition для корректного отображения файла в браузере.
+ * </p>
+ */
 @RestController
 @RequestMapping("/images")
 public class ImageController {
 
     private final FileStorageService fileStorageService;
 
+    /**
+     * Конструктор контроллера.
+     *
+     * @param fileStorageService сервис для работы с файловым хранилищем
+     */
     public ImageController(FileStorageService fileStorageService) {
         this.fileStorageService = fileStorageService;
     }
 
+    /**
+     * Получает изображение по его идентификатору и возвращает его в виде байтового массива.
+     * <p>
+     * Устанавливает следующие заголовки ответа:
+     * - Content‑Type — на основе типа контента, хранящегося в метаданных файла.
+     * - Cache‑Control — кэширование на 30 дней, публичное (доступно для прокси и CDN).
+     * - Content‑Disposition — режим inline и имя файла для корректного рендеринга в браузере.
+     * </p>
+     *
+     * @param fileId идентификатор запрашиваемого файла
+     * @return {@link ResponseEntity} с содержимым файла, соответствующими заголовками и статусом 200
+     */
     @GetMapping("/{fileId}")
     public ResponseEntity<byte[]> getImage(@PathVariable String fileId) {
         StoredFile storedFile = fileStorageService.get(fileId);

@@ -8,11 +8,29 @@ import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.model.User;
 
 /**
- * Маппер по пользователю
+ * MapStruct‑маппер для преобразования данных пользователя между DTO и сущностью.
+ * <p>
+ * Реализует интерфейс {@link BaseMapper}, обеспечивая:
+ * - создание сущности User из DTO Register (при регистрации);
+ * - преобразование сущности User в DTO UserInfoResponseDto (для ответа API);
+ * - формирование URL аватара на основе avatarFileId.
+ * </p>
  */
 @Mapper(componentModel = "spring")
 public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseDto> {
 
+    /**
+     * Преобразует DTO регистрации в сущность пользователя.
+     * <p>
+     * Выполняет следующие маппинги:
+     * - email: маппит из поля username (согласно бизнес‑логике проекта);
+     * - id, password, avatarFileId: игнорируются (будут заполнены позже, например, при сохранении);
+     * - остальные поля (firstName, lastName и т. п.) мапятся автоматически по совпадению имён.
+     * </p>
+     *
+     * @param request DTO с данными для регистрации пользователя
+     * @return новая сущность {@link User}
+     */
     @Override
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "email", source = "username")
@@ -20,6 +38,17 @@ public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseD
     @Mapping(target = "avatarFileId", ignore = true)
     User toEntity(Register request);
 
+    /**
+     * Преобразует сущность пользователя в DTO для ответа API.
+     * <p>
+     * Выполняет следующие маппинги:
+     * - image: формирует URL аватара с помощью метода toImageUrl на основе avatarFileId;
+     * - остальные поля (id, email, firstName, lastName, phone, role и т. д.) мапятся автоматически.
+     * </p>
+     *
+     * @param user сущность пользователя
+     * @return DTO с информацией о пользователе
+     */
     @Override
     @Mapping(
             target = "image",
@@ -28,6 +57,16 @@ public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseD
     )
     UserInfoResponseDto toResponse(User user);
 
+    /**
+     * Вспомогательный метод для формирования URL изображения по идентификатору файла.
+     * <p>
+     * Если fileId равен null, возвращает null. Иначе формирует путь вида "/images/{fileId}".
+     * Используется в маппере через аннотацию @Named("toImageUrl") и qualifiedByName.
+     * </p>
+     *
+     * @param fileId идентификатор файла изображения
+     * @return сформированный URL изображения или null, если идентификатор отсутствует
+     */
     @Named("toImageUrl")
     default String toImageUrl(String fileId) {
         return fileId == null

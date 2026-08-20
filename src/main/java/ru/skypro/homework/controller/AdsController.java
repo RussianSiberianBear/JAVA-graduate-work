@@ -18,6 +18,14 @@ import ru.skypro.homework.service.CommentService;
 
 import java.io.IOException;
 
+/**
+ * Контроллер для работы с объявлениями и комментариями.
+ * <p>
+ * Предоставляет REST‑эндпоинты для CRUD‑операций над объявлениями, а также для управления
+ * комментариями к ним. Контроллер интегрирован со Swagger для документирования API,
+ * использует валидацию входных данных и проверку прав доступа через {@link SecurityHelper}.
+ * </p>
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -29,9 +37,12 @@ public class AdsController {
     private final SecurityHelper securityHelper;
 
     /**
-     * Мотод получает список всех объявлений и их количество
+     * Получает список всех объявлений и их общее количество.
+     * <p>
+     * Доступен без авторизации (по контракту с фронтендом).
+     * </p>
      *
-     * @return DTO с количеством и списком всех объявлений
+     * @return {@link ResponseEntity} с {@link AdvertisingAllResponseDto}, содержащим количество и список объявлений
      */
     @GetMapping("")
     @Operation(
@@ -42,263 +53,305 @@ public class AdsController {
             @ApiResponse(responseCode = "200", description = "Все объявления получены")
     })
     public ResponseEntity<AdvertisingAllResponseDto> getAllAds() {
-
+        log.debug("Fetching all ads");
         return ResponseEntity.ok(advertisingService.findAll());
     }
 
     /**
-     * Метод добавляет одно объявление
+     * Добавляет новое объявление с изображением.
+     * <p>
+     * Требует авторизации. Принимает DTO с данными объявления и файл изображения.
+     * </p>
      *
-     * @param image - рисунок объявления
-     * @return DTO одного объявления
+     * @param properties данные для создания объявления ({@link CreateOrUpdateAd})
+     * @param image      файл изображения объявления
+     * @return {@link ResponseEntity} со статусом 201 и DTO созданного объявления
      */
     @PostMapping("")
     @Operation(
             summary = "Добавить объявление",
-            description = "Добавление нового бъявление"
+            description = "Добавление нового объявления с изображением"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Объявление добавлено"),
-            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
+            @ApiResponse(responseCode = "500", description = "Ошибка при обработке файла")
     })
-    public ResponseEntity<AdvertisingOneResponseDto> addAds(@RequestPart("properties") CreateOrUpdateAd properties, @RequestPart("image") MultipartFile image) {
+    public ResponseEntity<AdvertisingOneResponseDto> addAds(
+            @RequestPart("properties") @Valid CreateOrUpdateAd properties,
+            @RequestPart("image") MultipartFile image) {
 
         try {
+            log.debug("Creating new ad for user: {}", securityHelper.getCurrentUsername());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(advertisingService.createAds(securityHelper.getCurrentUsername(), properties, image));
         } catch (IOException e) {
+            log.error("Failed to process image file during ad creation", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     /**
-     * Метод получает объявления по его id
+     * Получает объявление по его идентификатору вместе с данными автора.
      *
-     * @return DTO c данными объявления и его автора
+     * @param id идентификатор объявления
+     * @return {@link ResponseEntity} с {@link AdvertisingWithAuthorDto}
      */
     @GetMapping("/{id}")
+    @Operation(
+            summary = "Получить объявление по ID",
+            description = "Получение объявления и информации об его авторе по идентификатору"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Объявление найдено"),
+            @ApiResponse(responseCode = "404", description = "Объявление не найдено")
+    })
     public ResponseEntity<AdvertisingWithAuthorDto> getAdsById(@PathVariable @Valid Long id) {
-
-
+        log.debug("Fetching ad with id: {}", id);
         AdvertisingWithAuthorDto ads = advertisingService.getAdById(id);
         return ResponseEntity.ok(ads);
     }
 
     /**
-     * Метод удаляет объявления по его id
+     * Удаляет объявление по его идентификатору.
+     * <p>
+     * Доступ разрешён только автору объявления или администратору.
+     * </p>
      *
-     * @return Статус 204 при успешном удалении
-     * 401 при неавторизованном пользователе
-     * 403 при недостатке прав
-     * 404 если объявление не найдено
+     * @param id идентификатор объявления
+     * @return {@link ResponseEntity} со статусом 204 при успешном удалении, 403 при отсутствии прав, 404 если не найдено
      */
+    @DeleteMapping("/{id}")
+    @Transactional
     @Operation(
-            summary = "Удалить объявление по его id",
-            description = "Удалить объявление по его id"
+            summary = "Удалить объявление по ID",
+            description = "Удаление объявления по идентификатору (доступно автору или администратору)"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Успешное удаление"),
+            @ApiResponse(responseCode = "204", description = "Объявление успешно удалено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
             @ApiResponse(responseCode = "404", description = "Объявление не найдено")
     })
-    @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<String> deleteAdsById(@PathVariable @Valid Long id) {
-
-
         if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
+            log.warn("Access denied for user {} to delete ad id {}", securityHelper.getCurrentUsername(), id);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        log.info("Deleting ad with id: {}", id);
         advertisingService.deleteAdById(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     /**
-     * Метод обновляет объявления по его id
+     * Обновляет данные объявления по его идентификатору.
+     * <p>
+     * Доступ разрешён только автору объявления или администратору.
+     * </p>
      *
-     * @return Статус 204 при успешном удалении
-     * 401 при неавторизованном пользователе
-     * 403 при недостатке прав
-     * 404 если объявление не найдено
+     * @param properties новые данные для обновления объявления
+     * @param id         идентификатор объявления
+     * @return {@link ResponseEntity} с обновлённым объявлением в формате DTO
      */
+    @PatchMapping("/{id}")
+    @Transactional
     @Operation(
-            summary = "Обновить объявление по его id",
-            description = "Обновитьить объявление по его id"
+            summary = "Обновить объявление по ID",
+            description = "Обновление данных объявления (доступно автору или администратору)"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Успешное обновление"),
+            @ApiResponse(responseCode = "200", description = "Объявление успешно обновлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
             @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
             @ApiResponse(responseCode = "404", description = "Объявление не найдено")
     })
-    @PatchMapping("/{id}")
-    @Transactional
-    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(@RequestBody CreateOrUpdateAd properties, @PathVariable @Valid Long id) {
-
+    public ResponseEntity<AdvertisingOneResponseDto> updateAdsById(
+            @RequestBody @Valid CreateOrUpdateAd properties,
+            @PathVariable @Valid Long id) {
 
         if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
+            log.warn("Access denied for user {} to update ad id {}", securityHelper.getCurrentUsername(), id);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        log.info("Updating ad with id: {}", id);
         return ResponseEntity.ok(advertisingService.updateById(id, properties));
     }
 
     /**
-     * Метод получает все объявления авторизованного пользователя
+     * Получает все объявления текущего авторизованного пользователя.
      *
-     * @return DTO с количеством объявлений и их список
+     * @return {@link ResponseEntity} с количеством и списком объявлений пользователя
      */
+    @GetMapping("/me")
     @Operation(
-            summary = "Получить все объявление авторизованного пользователя",
-            description = "Получить все объявление авторизованного пользователя и их количество"
+            summary = "Получить объявления авторизованного пользователя",
+            description = "Получение всех объявлений, созданных текущим пользователем"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Объяления и их количество получено"),
+            @ApiResponse(responseCode = "200", description = "Список объявлений получен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
-    @GetMapping("/me")
     public ResponseEntity<AdvertisingAllResponseDto> getAdsAuthorisedUser() {
-
-
-        AdvertisingAllResponseDto ads = advertisingService.findAllByUserId(securityHelper.getCurrentUserId());
+        Long userId = securityHelper.getCurrentUserId();
+        log.debug("Fetching ads for user id: {}", userId);
+        AdvertisingAllResponseDto ads = advertisingService.findAllByUserId(userId);
         return ResponseEntity.ok(ads);
     }
 
     /**
-     * Метод сохраняет или обновляет аватар пользователя
+     * Обновляет изображение объявления.
+     * <p>
+     * Доступ разрешён только автору объявления или администратору.
+     * </p>
      *
-     * @param image - аватар пользователя
-     * @return Статус 200 при успешном обновлении или
-     * статус 401 если пользователь не авторизован
+     * @param id    идентификатор объявления
+     * @param image файл нового изображения
+     * @return {@link ResponseEntity} со статусом 200 и именем файла при успешном обновлении
      */
     @PatchMapping("/{id}/image")
     @Operation(
-            summary = "Обновление картинки объявления",
-            description = "Обновление картинки объявления с идентификатором id"
+            summary = "Обновить изображение объявления",
+            description = "Замена изображения объявления (доступно автору или администратору)"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Картинкаобъявления обновлена"),
+            @ApiResponse(responseCode = "200", description = "Изображение обновлено"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
-            @ApiResponse(responseCode = "404", description = "Картинка с заданным идентификатором не найдена")
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
+            @ApiResponse(responseCode = "404", description = "Объявление не найдено")
     })
-    public ResponseEntity updateAdsImage(@PathVariable @Valid Long id, @RequestParam("image") @Valid MultipartFile image) {
+    public ResponseEntity<?> updateAdsImage(
+            @PathVariable @Valid Long id,
+            @RequestParam("image") @Valid MultipartFile image) {
 
         if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
+            log.warn("Access denied for user {} to update image of ad id {}", securityHelper.getCurrentUsername(), id);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        log.info("Updating image for ad id: {}", id);
         advertisingService.updateAdsImage(id, image);
         return ResponseEntity.ok(image.getOriginalFilename());
     }
 
     /**
-     * Получение всех комментариев по заданному рекламному объявлению
+     * Получает все комментарии к объявлению по его идентификатору.
      *
-     * @param id - идентификатор рекламного объявления
-     * @return DTO всех объявлений и их количества
+     * @param id идентификатор объявления
+     * @return {@link ResponseEntity} с DTO, содержащим комментарии и их количество
      */
+    @GetMapping("/{id}/comments")
     @Operation(
-            summary = "Получить все комментарии по заданному рекламному объявлению",
-            description = "Получить все комментарии по заданному рекламному объявлению и их количство"
+            summary = "Получить комментарии к объявлению",
+            description = "Получение всех комментариев, привязанных к объявлению"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Комментарии и их количество получено"),
-            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "404", description = "Заданное объявление не найдено")
+            @ApiResponse(responseCode = "200", description = "Комментарии получены"),
+            @ApiResponse(responseCode = "404", description = "Объявление не найдено")
     })
-    @GetMapping("/{id}/comments")
     public ResponseEntity<CommentsAllResponseDto> getAllCommentsByAdsId(@PathVariable @Valid Long id) {
-
-
+        log.debug("Fetching comments for ad id: {}", id);
         return ResponseEntity.ok(commentService.findByAdvertisingId(id));
     }
 
     /**
-     * Добавление комментария к заданному рекламному объявлению
+     * Добавляет комментарий к объявлению.
      *
-     * @param id   - идентификатор объявления
-     * @param text - текст комментария
-     * @return DTO добавленного комментария
+     * @param id   идентификатор объявления
+     * @param text DTO с текстом комментария
+     * @return {@link ResponseEntity} с DTO добавленного комментария
      */
-
+    @PostMapping("/{id}/comments")
     @Operation(
-            summary = "Добавить комментарий к заданному рекламному объявлению",
-            description = "Добавить комментарий к заданному рекламному объявлению по его id"
+            summary = "Добавить комментарий к объявлению",
+            description = "Создание нового комментария к объявлению от имени текущего пользователя"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Комментарии и их количество получено"),
+            @ApiResponse(responseCode = "200", description = "Комментарий добавлен"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "404", description = "Заданное объявление не найдено")
+            @ApiResponse(responseCode = "404", description = "Объявление не найдено")
     })
-    @PostMapping("/{id}/comments")
-    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(@PathVariable @Valid Long id, @Valid @RequestBody CommentRequestDto text) {
+    public ResponseEntity<CommentOneResponseDto> addCommentToAdvertisingId(
+            @PathVariable @Valid Long id,
+            @Valid @RequestBody CommentRequestDto text) {
 
-
-        return ResponseEntity.ok(commentService.addCommentToAdvertisingId(securityHelper.getCurrentUser(), id, text));
+        log.info("Adding comment to ad id: {}", id);
+        return ResponseEntity.ok(
+                commentService.addCommentToAdvertisingId(securityHelper.getCurrentUser(), id, text)
+        );
     }
 
     /**
-     * Метод удалает определенный комментарий к конкретному рекламному объявлению
+     * Удаляет комментарий, привязанный к объявлению.
+     * <p>
+     * Удаление разрешено только администратору или автору комментария.
+     * </p>
      *
-     * @param adId      - идентификатор рекламного объявления
-     * @param commentId - идентификатор комментария
-     * @return Статус 200 - при удачном удалении
-     * 401 - при попытке ваыполнить операцию неавторизованным пользователем
-     * 403 - при недосточном уровне прав пользователя(удаление комментариев разрешено только пользователю с рольюю ADMIN)
-     * 404 - если комментари  или само обяъвление не найдено
+     * @param adId      идентификатор объявления
+     * @param commentId идентификатор комментария
+     * @return {@link ResponseEntity} со статусом 200 при успешном удалении
      */
+    @DeleteMapping("/{adId}/comments/{commentId}")
     @Operation(
-            summary = "Удалить заданный комментарий к заданному рекламному объявлению",
-            description = "Удалить заданный комментарий к заданному рекламному объявлению"
+            summary = "Удалить комментарий к объявлению",
+            description = "Удаление комментария (доступно администратору или автору комментария)"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Комментарий удален"),
+            @ApiResponse(responseCode = "200", description = "Комментарий удалён"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
-            @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
+            @ApiResponse(responseCode = "404", description = "Объявление или комментарий не найдены")
     })
-    @DeleteMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<String> deleteComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId) {
+    public ResponseEntity<String> deleteComment(
+            @PathVariable @Valid Long adId,
+            @PathVariable @Valid Long commentId) {
 
         if (!securityHelper.isAdmin() && commentService.isAnotherAuthor(commentId, adId)) {
+            log.warn("Access denied for user {} to delete comment id {}", securityHelper.getCurrentUsername(), commentId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        log.info("Deleting comment id: {} for ad id: {}", commentId, adId);
         commentService.deleteCommentByIdAndAdvertisingById(commentId, adId);
-
         return ResponseEntity.ok().build();
     }
 
     /**
-     * Метод обновляет определенный комментарий к конкретному рекламному объявлению
+     * Обновляет текст комментария, привязанного к объявлению.
+     * <p>
+     * Обновление разрешено только администратору или автору комментария.
+     * </p>
      *
-     * @param adId      - идентификатор рекламного объявления
-     * @param commentId - идентификатор комментария
-     * @return Статус 200 и DTO обновленного комментария при удачном обновлении
-     * 401 - при попытке ваыполнить операцию неавторизованным пользователем
-     * 403 - при недосточном уровне прав пользователя(удаление комментариев разрешено только пользователю с рольюю ADMIN)
-     * 404 - если комментари  или само обяъвление не найдено
+     * @param adId      идентификатор объявления
+     * @param commentId идентификатор комментария
+     * @param text      DTO с новым текстом комментария
+     * @return {@link ResponseEntity} с DTO обновлённого комментария
      */
+    @PatchMapping("/{adId}/comments/{commentId}")
     @Operation(
-            summary = "Обновить заданный комментарий к заданному рекламному объявлению",
-            description = "Обновить заданный комментарий к заданному рекламному объявлению"
+            summary = "Обновить комментарий к объявлению",
+            description = "Изменение текста комментария (доступно администратору или автору комментария)"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Комментарий удален"),
+            @ApiResponse(responseCode = "200", description = "Комментарий обновлён"),
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован"),
-            @ApiResponse(responseCode = "403", description = "Недостатчно прав"),
-            @ApiResponse(responseCode = "404", description = "Заданное объявление или комментарий не найдены")
+            @ApiResponse(responseCode = "403", description = "Недостаточно прав"),
+            @ApiResponse(responseCode = "404", description = "Объявление или комментарий не найдены")
     })
-    @PatchMapping("/{adId}/comments/{commentId}")
-    public ResponseEntity<CommentOneResponseDto> updateComment(@PathVariable @Valid Long adId, @PathVariable @Valid Long commentId, @Valid @RequestBody CommentRequestDto text) {
+    public ResponseEntity<CommentOneResponseDto> updateComment(
+            @PathVariable @Valid Long adId,
+            @PathVariable @Valid Long commentId,
+            @Valid @RequestBody CommentRequestDto text) {
 
         if (!securityHelper.isAdmin() && commentService.isAnotherAuthor(commentId, adId)) {
+            log.warn("Access denied for user {} to update comment id {}", securityHelper.getCurrentUsername(), commentId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        return ResponseEntity.ok(commentService.updateCommentByIdAndAdvertisingById(commentId, adId, text));
+        log.info("Updating comment id: {} for ad id: {}", commentId, adId);
+        return ResponseEntity.ok(
+                commentService.updateCommentByIdAndAdvertisingById(commentId, adId, text)
+        );
     }
 }

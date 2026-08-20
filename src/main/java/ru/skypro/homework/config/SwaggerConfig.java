@@ -8,9 +8,22 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Конфигурация Swagger/OpenAPI для API приложения.
+ * <p>
+ * Определяет метаданные API (название, версия, описание, контакт), а также настраивает
+ * схему безопасности (Basic Authentication). Конфигурация регистрируется как Spring-бин
+ * и автоматически подхватывается стартером Swagger UI.
+ * </p>
+ */
 @Configuration
 public class SwaggerConfig {
 
+    /**
+     * Создаёт и настраивает экземпляр {@link OpenAPI} с метаданными и схемой безопасности.
+     *
+     * @return сконфигурированный объект {@link OpenAPI}
+     */
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
@@ -21,10 +34,11 @@ public class SwaggerConfig {
                         .contact(new Contact()
                                 .name("Student")))
                 .addSecurityItem(new SecurityRequirement().addList("basicAuth"))
-                .schemaRequirement("basicAuth", new SecurityScheme()
-                        .name("basicAuth")
-                        .type(SecurityScheme.Type.HTTP)
-                        .scheme("basic")
-                        .description("Basic Authentication"));
+                .components(new io.swagger.v3.oas.models.Components()
+                        .addSecuritySchemes("basicAuth", new SecurityScheme()
+                                .name("basicAuth")
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("basic")
+                                .description("Basic Authentication")));
     }
 }
