@@ -5,6 +5,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+/**
+ * DTO для парсинга ответа Alfresco API при запросе дочерних элементов папки.
+ * <p>
+ * Отражает структуру JSON‑ответа от Alfresco REST API (endpoint /alfresco/api/-default-/public/alfresco/versions/1/nodes/{nodeId}/children).
+ * Аннотация {@link JsonIgnoreProperties} позволяет игнорировать поля, не описанные в DTO,
+ * что делает маппинг устойчивым к изменениям API или дополнительным метаданным.
+ * </p>
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AlfrescoChildrenResponse {
 
@@ -18,6 +26,9 @@ public class AlfrescoChildrenResponse {
         this.list = list;
     }
 
+    /**
+     * Контейнер для списка дочерних элементов и пагинации.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AlfrescoChildrenList {
 
@@ -41,6 +52,13 @@ public class AlfrescoChildrenResponse {
         }
     }
 
+    /**
+     * Данные пагинации ответа Alfresco.
+     * <p>
+     * Позволяет корректно обрабатывать постраничную навигацию: размер страницы,
+     * смещение, общее количество элементов и признак наличия следующих страниц.
+     * </p>
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Pagination {
 
@@ -91,6 +109,9 @@ public class AlfrescoChildrenResponse {
         }
     }
 
+    /**
+     * Обертка над элементом списка (нужна из‑за структуры JSON Alfresco: { "entry": {...} }).
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Entry {
 
@@ -105,6 +126,14 @@ public class AlfrescoChildrenResponse {
         }
     }
 
+    /**
+     * Метаданные отдельного дочернего элемента (файла или папки) в Alfresco.
+     * <p>
+     * Содержит ключевые атрибуты: идентификатор, имя, признак папки, дату создания.
+     * Поле {@code isFolder} критично для логики навигации по дереву папок,
+     * а {@code id} — для последующих запросов (например, получения содержимого или загрузки файла).
+     * </p>
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AlfrescoChildrenEntry {
 
@@ -133,6 +162,9 @@ public class AlfrescoChildrenResponse {
             return isFolder;
         }
 
+        /**
+         * Сеттер с корректным именем (в Alfresco поле называется isFolder, поэтому используем setFolder).
+         */
         public void setFolder(boolean folder) {
             isFolder = folder;
         }

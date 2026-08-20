@@ -17,6 +17,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Компонент для периодической очистки неиспользуемых файлов в Alfresco.
+ * <p>
+ * Задача ({@link Scheduled}) запускается ежедневно в 03:00. Она:
+ * - собирает список всех файлов в заданной папке Alfresco (с пагинацией);
+ * - получает из БД список ID файлов, которые сейчас используются (аватары пользователей, изображения объявлений);
+ * - удаляет файлы, которые:
+ *   - не используются в приложении;
+ *   - старше заданного TTL (по умолчанию — 1 день);
+ *   - являются файлами (не папками).
+ * </p>
+ * <p>
+ * Логика защищает от удаления «свежих» сиротских файлов (например, если транзакция ещё не завершена
+ * или файл временно не привязан к сущности) и от ошибок при удалении — в случае сбоя файл
+ * будет обработан на следующем запуске.
+ * </p>
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -27,6 +44,13 @@ public class AlfrescoCleanupJob {
 
     private static final int PAGE_SIZE = 100;
 
+    /**
+     * Время «жизни» неиспользуемого файла до удаления.
+     * <p>
+     * Файлы, созданные менее суток назад и не привязанные к сущностям, не удаляются,
+     * чтобы избежать проблем при незавершённых операциях загрузки/привязки.
+     * </p>
+     */
     private static final Duration ORPHAN_FILE_TTL =
             Duration.ofDays(1);
 
@@ -37,9 +61,10 @@ public class AlfrescoCleanupJob {
     private final FileStorageService fileService;
 
     /**
-     * Ежедневная очистка файлов Alfresco,
-     * которые больше не используются приложением
-     * и были созданы более суток назад.
+     * Ежедневная задача очистки «сиротских» файлов в Alfresco.
+     * <p>
+     * Cron-выражение «0 0 3 * * *» означает запуск каждый день в 03:00.
+     * </p>
      */
     @Scheduled(cron = "0 0 3 * * *")
     public void cleanupOrphanedFiles() {
@@ -56,23 +81,26 @@ public class AlfrescoCleanupJob {
             int skippedRecentCount = 0;
 
             for (AlfrescoFileInfo fileInfo : allFiles) {
-
+                // Пропускаем папки — удаляем только файлы
                 if (fileInfo.isFolder()) {
                     continue;
                 }
 
                 String fileId = fileInfo.getId();
 
+                // Пропускаем файлы без валидного ID
                 if (!StringUtils.hasText(fileId)) {
                     continue;
                 }
 
+                // Если файл используется в БД — не удаляем
                 if (usedFileIds.contains(fileId)) {
                     continue;
                 }
 
                 OffsetDateTime createdAt = fileInfo.getCreatedAt();
 
+                // Если нет даты создания — пропускаем (не можем корректно проверить возраст)
                 if (createdAt == null) {
                     log.warn(
                             "Skipping orphaned file because createdAt is missing: {} (ID: {})",
@@ -82,6 +110,7 @@ public class AlfrescoCleanupJob {
                     continue;
                 }
 
+                // Если файл создан недавно (младше TTL) — не удаляем, чтобы избежать рассинхронизации
                 if (createdAt.isAfter(deleteBefore)) {
                     skippedRecentCount++;
 
@@ -95,6 +124,7 @@ public class AlfrescoCleanupJob {
                     continue;
                 }
 
+                // Удаляем старый неиспользуемый файл
                 try {
                     fileService.delete(fileId);
                     deletedCount++;
@@ -106,7 +136,6 @@ public class AlfrescoCleanupJob {
                             fileId,
                             createdAt
                     );
-
                 } catch (Exception e) {
                     log.error(
                             "Failed to delete orphaned file: {} (ID: {})",
@@ -131,6 +160,16 @@ public class AlfrescoCleanupJob {
         }
     }
 
+    /**
+     * Собирает все ID файлов, которые используются в приложении.
+     * <p>
+     * На текущий момент учитываются:
+     * - аватары пользователей (через {@code userRepository.findAllAvatarFileIds()});
+     * - изображения объявлений (через {@code advertisingRepository.findAllImageFileIds()}).
+     * </p>
+     *
+     * @return множество ID используемых файлов
+     */
     private Set<String> getUsedFileIds() {
         Set<String> usedFileIds = new HashSet<>();
 
@@ -150,6 +189,16 @@ public class AlfrescoCleanupJob {
         return usedFileIds;
     }
 
+    /**
+     * Получает все узлы (файлы и папки) из целевой папки Alfresco с использованием пагинации.
+     * <p>
+     * Выполняет последовательные запросы к Alfresco API с шагом {@code PAGE_SIZE}, пока
+     * не будут получены все элементы. Для каждого элемента создаётся объект
+     * {@link AlfrescoFileInfo}.
+     * </p>
+     *
+     * @return список информации обо всех узлах в папке Alfresco
+     */
     private List<AlfrescoFileInfo> getAllFilesFromAlfresco() {
         List<AlfrescoFileInfo> allFiles = new ArrayList<>();
 
@@ -158,7 +207,6 @@ public class AlfrescoCleanupJob {
         boolean hasMoreItems = true;
 
         while (hasMoreItems) {
-
             String uri =
                     API + "/{folderId}/children"
                             + "?skipCount={skipCount}"
