@@ -2,6 +2,7 @@ package ru.skypro.homework.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -26,7 +27,7 @@ public record SetPasswordRequestDto(
                 required = true,
                 minLength = 8,
                 maxLength = 16,
-                pattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$")
+                pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
         @NotBlank(message = "Текущий пароль не может быть пустым")
         @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
         String currentPassword,
@@ -41,9 +42,15 @@ public record SetPasswordRequestDto(
                 required = true,
                 minLength = 8,
                 maxLength = 16,
-                pattern = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$")
+                pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
         @NotBlank(message = "Новый пароль не может быть пустым")
         @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
+        @Pattern(
+                regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
+                message = "Пароль должен содержать минимум 8 символов, " +
+                        "одну цифру, одну заглавную и одну строчную букву, " +
+                        "один специальный символ (@#$%^&+=), и не содержать пробелов"
+        )
         String newPassword
 ) {
 }

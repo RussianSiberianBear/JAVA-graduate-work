@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
             UserDetails userDetails = userDetailsService.loadUserByUsername(userName);
             return encoder.matches(password, userDetails.getPassword());
         } catch (UsernameNotFoundException e) {
-            // Пользователь не найден — считаем аутентификацию неуспешной
+            // Пользователь не найден—считаем аутентификацию неуспешной
             return false;
         }
     }
@@ -71,11 +71,11 @@ public class AuthServiceImpl implements AuthService {
      * Регистрирует нового пользователя.
      * <p>
      * Сначала проверяет, существует ли пользователь с таким email (username).
-     * Если существует — регистрация отклоняется.
-     * Если не существует — создаёт сущность, хеширует пароль, сохраняет в БД.
+     * Если существует—регистрация отклоняется.
+     * Если не существует—создаёт сущность, хеширует пароль, сохраняет в БД.
      * </p>
      *
-     * @param register DTO с данными для регистрации (email, пароль, ФИО, телефон и т. п.)
+     * @param register DTO с данными для регистрации (email, пароль, ФИО, телефон и т.п.)
      * @return true при успешной регистрации; false, если пользователь уже существует или произошла ошибка
      */
     @Override
@@ -83,10 +83,10 @@ public class AuthServiceImpl implements AuthService {
         try {
             // Проверяем, существует ли уже пользователь с таким username (email)
             userDetailsService.loadUserByUsername(register.username());
-            // Если исключение не выброшено — пользователь уже есть, регистрация невозможна
+            // Если исключение не выброшено—пользователь уже есть, регистрация невозможна
             return false;
         } catch (UsernameNotFoundException e) {
-            // Исключение означает, что пользователя нет — можно регистрировать
+            // Исключение означает, что пользователя нет—можно регистрировать
             User user = userMapper.toEntity(register);
             user.setPassword(encoder.encode(register.password()));
             userRepository.save(user);
