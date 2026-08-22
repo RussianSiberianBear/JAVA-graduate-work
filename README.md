@@ -13,6 +13,7 @@
 * **Spring Security (Basic Auth)** — авторизация и аутентификация
 * **Swagger/OpenAPI (SpringDoc 2.8.5)** — документация API
 * **MapStruct** — маппинг DTO и сущностей
+* **Jakarta Validation для обеспечения валидации данных
 * **Lombok** — генерация шаблонного кода
 * **Alfresco Content Services Community 26.x**(далее Alfresco CS) — файловое хранилище (аватарки и изображения объявлений)
 * **RestClient** — взаимодействие с Alfresco CS API
