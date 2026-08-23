@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import ru.skypro.homework.constants.ValidationConstants;
 
 /**
  * DTO для запроса на смену пароля пользователя.
@@ -23,13 +24,21 @@ public record SetPasswordRequestDto(
          * Пример: oldPassword123
          */
         @Schema(description = "Текущий пароль пользователя",
-                example = "oldPassword123",
+                example = "oldPassword123@",
                 required = true,
-                minLength = 8,
-                maxLength = 16,
-                pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
+                minLength = ValidationConstants.PASSWORD_MIN,
+                maxLength = ValidationConstants.PASSWORD_MAX,
+                pattern = ValidationConstants.PASSWORD_REGEX)
         @NotBlank(message = "Текущий пароль не может быть пустым")
-        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
+        @Size(min = ValidationConstants.PASSWORD_MIN,
+                max = ValidationConstants.PASSWORD_MAX,
+                message = "Пароль должен содержать от " +
+                        ValidationConstants.PASSWORD_MIN + " до " +
+                        ValidationConstants.PASSWORD_MAX + " символов")
+        @Pattern(
+                regexp = ValidationConstants.PASSWORD_REGEX,
+                message = ValidationConstants.PASSWORD_MESSAGE
+        )
         String currentPassword,
 
         /**
@@ -38,18 +47,20 @@ public record SetPasswordRequestDto(
          * Пример: newPassword456
          */
         @Schema(description = "Новый пароль пользователя",
-                example = "newPassword456",
+                example = "newPassword456@",
                 required = true,
-                minLength = 8,
-                maxLength = 16,
-                pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
+                minLength = ValidationConstants.PASSWORD_MIN,
+                maxLength = ValidationConstants.PASSWORD_MAX,
+                pattern = ValidationConstants.PASSWORD_REGEX)
         @NotBlank(message = "Новый пароль не может быть пустым")
-        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
+        @Size(min = ValidationConstants.PASSWORD_MIN,
+                max = ValidationConstants.PASSWORD_MAX,
+                message = "Пароль должен содержать от " +
+                        ValidationConstants.PASSWORD_MIN + " до " +
+                        ValidationConstants.PASSWORD_MAX + " символов")
         @Pattern(
-                regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
-                message = "Пароль должен содержать минимум 8 символов, " +
-                        "одну цифру, одну заглавную и одну строчную букву, " +
-                        "один специальный символ (@#$%^&+=), и не содержать пробелов"
+                regexp = ValidationConstants.PASSWORD_REGEX,
+                message = ValidationConstants.PASSWORD_MESSAGE
         )
         String newPassword
 ) {

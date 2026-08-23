@@ -2,6 +2,7 @@ package ru.skypro.homework.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import ru.skypro.homework.constants.ValidationConstants;
 
 /**
  * DTO для запроса на регистрацию нового пользователя.
@@ -42,16 +43,18 @@ public record Register(
                 "одну цифру, одну заглавную и одну строчную букву",
                 example = "SecurePass123!",
                 required = true,
-                minLength = 8,
-                maxLength = 16,
-                pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$")
+                minLength = ValidationConstants.PASSWORD_MIN,
+                maxLength = ValidationConstants.PASSWORD_MAX,
+                pattern = ValidationConstants.PASSWORD_REGEX)
         @NotBlank(message = "Пароль не может быть пустым!")
-        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
+        @Size(min = ValidationConstants.PASSWORD_MIN,
+                max = ValidationConstants.PASSWORD_MAX,
+                message = "Пароль должен содержать от " +
+                        ValidationConstants.PASSWORD_MIN + " до " +
+                        ValidationConstants.PASSWORD_MAX + " символов")
         @Pattern(
-                regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
-                message = "Пароль должен содержать минимум 8 символов, " +
-                        "одну цифру, одну заглавную и одну строчную букву, " +
-                        "один специальный символ (@#$%^&+=), и не содержать пробелов"
+                regexp = ValidationConstants.PASSWORD_REGEX,
+                message = ValidationConstants.PASSWORD_MESSAGE
         )
         String password,
 
@@ -63,13 +66,17 @@ public record Register(
         @Schema(description = "Имя пользователя",
                 example = "John",
                 required = true,
-                minLength = 2,
-                maxLength = 16,
-                pattern = "^[A-Za-zА-Яа-я\\s-]+$")
+                minLength = ValidationConstants.USERNAME_MIN,
+                maxLength = ValidationConstants.USERNAME_MAX,
+                pattern = ValidationConstants.USERNAME_REGEX)
         @NotBlank(message = "Имя пользователя не может быть пустым!")
-        @Size(min = 2, max = 16, message = "Имя должно содержать от 2 до 16 символов")
-        @Pattern(regexp = "^[A-Za-zА-Яа-я\\s-]+$",
-                message = "Имя может содержать только буквы, пробелы и дефисы")
+        @Size(min = ValidationConstants.USERNAME_MIN,
+                max = ValidationConstants.USERNAME_MAX,
+                message = "Имя должно содержать от " +
+                        ValidationConstants.USERNAME_MIN + " до " +
+                        ValidationConstants.USERNAME_MAX + " символов")
+        @Pattern(regexp = ValidationConstants.USERNAME_REGEX,
+                message = ValidationConstants.USERNAME_MESSAGE)
         String firstName,
 
         /**
@@ -80,13 +87,17 @@ public record Register(
         @Schema(description = "Фамилия пользователя",
                 example = "Doe",
                 required = true,
-                minLength = 2,
-                maxLength = 16,
-                pattern = "^[A-Za-zА-Яа-я\\s-]+$")
+                minLength = ValidationConstants.USERNAME_MIN,
+                maxLength = ValidationConstants.USERNAME_MAX,
+                pattern = ValidationConstants.USERNAME_REGEX)
         @NotBlank(message = "Фамилия пользователя не может быть пустой!")
-        @Size(min = 2, max = 16, message = "Фамилия должна содержать от 2 до 16 символов")
-        @Pattern(regexp = "^[A-Za-zА-Яа-я\\s-]+$",
-                message = "Фамилия может содержать только буквы, пробелы и дефисы")
+        @Size(min = ValidationConstants.USERNAME_MIN,
+                max = ValidationConstants.USERNAME_MAX,
+                message = "Фамилия должна содержать от " +
+                        ValidationConstants.USERNAME_MIN + " до " +
+                        ValidationConstants.USERNAME_MAX + " символов")
+        @Pattern(regexp = ValidationConstants.USERNAME_REGEX,
+                message = ValidationConstants.USERNAME_MESSAGE)
         String lastName,
 
         /**
@@ -98,10 +109,12 @@ public record Register(
         @Schema(description = "Номер телефона пользователя",
                 example = "+7 (999) 123-45-67",
                 required = true,
-                pattern = "^\\+?[0-9\\s\\-()]{10,20}$")
+                minLength = ValidationConstants.PHONE_MIN,
+                maxLength = ValidationConstants.PHONE_MAX,
+                pattern = ValidationConstants.PHONE_REGEX)
         @NotBlank(message = "Телефон пользователя не может быть пустым!")
-        @Pattern(regexp = "^\\+?[0-9\\s\\-()]{10,20}$",
-                message = "Телефон должен содержать от 10 до 20 цифр, может начинаться с +")
+        @Pattern(regexp = ValidationConstants.PHONE_REGEX,
+                message = ValidationConstants.PHONE_MESSAGE)
         String phone,
 
         /**
@@ -117,30 +130,4 @@ public record Register(
         Role role
 
 ) {
-
-    /**
-     * Компактный конструктор record, выполняющий дополнительную проверку на null и пустые значения.
-     * Эта проверка дублирует часть валидации, заданной аннотациями, и служит дополнительной защитой
-     * от некорректных данных на уровне создания экземпляра.
-     */
-    public Register {
-        if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Логин пользователя не может быть пустым!");
-        }
-        if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("Пароль не может быть пустым!");
-        }
-        if (firstName == null || firstName.isBlank()) {
-            throw new IllegalArgumentException("Имя пользователя не может быть пустым!");
-        }
-        if (lastName == null || lastName.isBlank()) {
-            throw new IllegalArgumentException("Фамилия пользователя не может быть пустой!");
-        }
-        if (phone == null || phone.isBlank()) {
-            throw new IllegalArgumentException("Телефон пользователя не может быть пустым!");
-        }
-        if (role == null) {
-            throw new IllegalArgumentException("Роль пользователя не может быть пустым значением!");
-        }
-    }
 }
