@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ru.skypro.homework.config.ImageValidator;
 import ru.skypro.homework.dto.*;
 import ru.skypro.homework.security.SecurityHelper;
 import ru.skypro.homework.service.AdvertisingService;
@@ -80,6 +81,8 @@ public class AdsController {
     public ResponseEntity<AdvertisingOneResponseDto> addAds(
             @RequestPart("properties") @Valid CreateOrUpdateAd properties,
             @RequestPart("image") MultipartFile image) {
+
+        ImageValidator.validateImage(image);
 
         try {
             log.debug("Creating new ad for user: {}", securityHelper.getCurrentUsername());
@@ -223,6 +226,8 @@ public class AdsController {
     public ResponseEntity<?> updateAdsImage(
             @PathVariable @Valid Long id,
             @RequestParam("image") @Valid MultipartFile image) {
+
+        ImageValidator.validateImage(image);
 
         if (!securityHelper.isAdmin() && advertisingService.isAnotherAuthor(id)) {
             log.warn("Access denied for user {} to update image of ad id {}", securityHelper.getCurrentUsername(), id);

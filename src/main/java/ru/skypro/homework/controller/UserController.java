@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ru.skypro.homework.config.ImageValidator;
 import ru.skypro.homework.dto.SetPasswordRequestDto;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.dto.UserUpdateInfoDto;
@@ -128,6 +129,8 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Пользователь не авторизован")
     })
     public ResponseEntity<String> updateUsersAvatar(@RequestParam("image") @Valid MultipartFile image) {
+        ImageValidator.validateImage(image);
+
         String username = securityHelper.getCurrentUsername();
         log.info("Updating avatar for user: {}, file: {}", username, image.getOriginalFilename());
         userService.updateUsersAvatar(username, image);

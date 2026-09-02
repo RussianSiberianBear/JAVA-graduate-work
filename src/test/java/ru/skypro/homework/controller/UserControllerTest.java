@@ -268,7 +268,7 @@ class UserControllerTest {
     }
 
     @Test
-    void updateUsersAvatar_EmptyFile_CurrentControllerAcceptsIt_Test() throws Exception {
+    void updateUsersAvatar_EmptyFile_ReturnsBadRequest_Test() throws Exception {
         MockMultipartFile image = avatar("avatar.jpg", MediaType.IMAGE_JPEG_VALUE, new byte[0]);
         when(securityHelper.getCurrentUsername()).thenReturn(USERNAME);
 
@@ -278,13 +278,13 @@ class UserControllerTest {
                             request.setMethod("PATCH");
                             return request;
                         }))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
 
-        verify(userService).updateUsersAvatar(eq(USERNAME), any(MultipartFile.class));
+        verifyNoInteractions(userService);
     }
 
     @Test
-    void updateUsersAvatar_InvalidFileType_CurrentControllerAcceptsIt_Test() throws Exception {
+    void updateUsersAvatar_InvalidFileType_ReturnsBadRequest_Test() throws Exception {
         MockMultipartFile image = avatar("document.pdf", MediaType.APPLICATION_PDF_VALUE, "fake pdf content".getBytes());
         when(securityHelper.getCurrentUsername()).thenReturn(USERNAME);
 
@@ -294,9 +294,9 @@ class UserControllerTest {
                             request.setMethod("PATCH");
                             return request;
                         }))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
 
-        verify(userService).updateUsersAvatar(eq(USERNAME), any(MultipartFile.class));
+        verifyNoInteractions(userService);
     }
 
     private MockMultipartFile avatar(String fileName, String contentType, byte[] content) {
