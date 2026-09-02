@@ -52,20 +52,15 @@ public class ImageController {
     public ResponseEntity<byte[]> getImage(@PathVariable String fileId) {
         StoredFile storedFile = fileStorageService.get(fileId);
 
+        if (storedFile == null) {
+            return ResponseEntity.notFound().build();
+        }
+
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(
-                        storedFile.info().contentType()
-                ))
-                .cacheControl(
-                        CacheControl.maxAge(30, TimeUnit.DAYS)
-                                .cachePublic()
-                )
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"" +
-                                storedFile.info().fileName() +
-                                "\""
-                )
+                .contentType(MediaType.parseMediaType(storedFile.info().contentType()))
+                .cacheControl(CacheControl.maxAge(30, TimeUnit.DAYS).cachePublic())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + storedFile.info().fileName() + "\"")
                 .body(storedFile.content());
     }
 }
