@@ -122,7 +122,6 @@ public class AdsController {
      * @return {@link ResponseEntity} со статусом 204 при успешном удалении, 403 при отсутствии прав, 404 если не найдено
      */
     @DeleteMapping("/{id}")
-    @Transactional
     @Operation(
             summary = "Удалить объявление по ID",
             description = "Удаление объявления по идентификатору (доступно автору или администратору)"
