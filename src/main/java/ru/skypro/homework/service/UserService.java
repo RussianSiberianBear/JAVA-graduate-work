@@ -100,22 +100,9 @@ public class UserService {
     }
 
     /**
-     * Находит пользователя по номеру телефона и возвращает его данные.
-     *
-     * @param phone номер телефона пользователя
-     * @return {@link UserInfoResponseDto} с данными пользователя
-     * @throws UsernameNotFoundException если пользователь с указанным телефоном не найден
-     */
-    public UserInfoResponseDto findUserByPhone(String phone) {
-        return userRepository.findByPhone(phone)
-                .map(userMapper::toResponse)
-                .orElseThrow(() -> new UsernameNotFoundException(ExceptionMessages.formatUserNotFound("")));
-    }
-
-    /**
      * Обновляет личные данные пользователя (имя, фамилию, телефон).
      * <p>
-     * Можно обновлять любое подмножество полей — изменяются только те, что переданы в DTO.
+     * Можно обновлять любое подмножество полей—изменяются только те, что переданы в DTO.
      * </p>
      *
      * @param username email (логин) пользователя
