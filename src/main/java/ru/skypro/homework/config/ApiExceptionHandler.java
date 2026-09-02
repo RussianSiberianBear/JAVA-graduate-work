@@ -234,18 +234,30 @@ public class ApiExceptionHandler {
                 .body("Failed to retrieve ad: " + ex.getMessage());
     }
 
-    // ============ Ошибки файлового хранилища (500 / 503) ============
+    // ============ Ошибки файлового хранилища (400 / 500) ============
 
     /**
      * Обрабатывает исключения, связанные с файловым хранилищем
      * ({@link FileStorageException}).
-     * Логирует ошибку на уровне ERROR и возвращает ответ со статусом 500.
+     * <p>
+     * Для ошибок валидации (пустой файл, неверный тип/расширение) возвращает 400.
+     * Для остальных ошибок хранилища — 500.
+     * </p>
      *
      * @param ex исключение файлового хранилища
-     * @return {@link ResponseEntity} со статусом 500 и сообщением об ошибке сервиса хранения
+     * @return {@link ResponseEntity} со статусом 400 или 500 и сообщением об ошибке
      */
     @ExceptionHandler(FileStorageException.class)
     public ResponseEntity<String> handleFileStorageException(FileStorageException ex) {
+        String message = ex.getMessage();
+        boolean isValidationError = message != null &&
+                (message.contains("пустым") || message.contains("Допустимы только изображения") || message.contains("Допустимы только файлы"));
+
+        if (isValidationError) {
+            log.warn("API file validation error: {}", message);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+        }
+
         log.error("API file storage error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("File storage service error: " + ex.getMessage());
