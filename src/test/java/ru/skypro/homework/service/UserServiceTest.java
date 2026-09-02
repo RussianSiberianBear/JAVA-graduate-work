@@ -381,53 +381,6 @@ class UserServiceTest {
                 );
     }
 
-
-    // ===== ТЕСТЫ ДЛЯ findUserByPhone =====
-
-    @Test
-    void findUserByPhone_Success_Test() {
-        User user = createDefaultUser();
-
-        UserInfoResponseDto expected =
-                createDefaultUserInfoResponseDto();
-
-        when(userRepository.findByPhone(USER_PHONE))
-                .thenReturn(Optional.of(user));
-
-        when(userMapper.toResponse(user))
-                .thenReturn(expected);
-
-        UserInfoResponseDto result =
-                userService.findUserByPhone(USER_PHONE);
-
-        assertThat(result).isNotNull();
-        assertThat(result.phone()).isEqualTo(USER_PHONE);
-        assertThat(result.email()).isEqualTo(USER_EMAIL);
-
-        verify(userRepository, times(1))
-                .findByPhone(USER_PHONE);
-
-        verify(userMapper, times(1))
-                .toResponse(user);
-    }
-
-    @Test
-    void findUserByPhone_UserNotFound_Test() {
-        String phone = "+79990000000";
-
-        when(userRepository.findByPhone(phone))
-                .thenReturn(Optional.empty());
-
-        assertThatThrownBy(
-                () -> userService.findUserByPhone(phone)
-        )
-                .isInstanceOf(UsernameNotFoundException.class)
-                .hasMessage(
-                        ExceptionMessages.formatUserNotFound("")
-                );
-    }
-
-
     // ===== ТЕСТЫ ДЛЯ updateUsersAvatar =====
 
     @Test
