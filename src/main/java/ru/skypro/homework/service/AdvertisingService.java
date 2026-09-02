@@ -1,9 +1,9 @@
 package ru.skypro.homework.service;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
@@ -336,6 +336,7 @@ public class AdvertisingService {
      * Проверяет, является ли текущий пользователь автором объявления.
      * <p>
      * Возвращает {@code true}, если автор объявления отличается от текущего пользователя.
+     * Метод помечен как read-only для оптимизации работы с Hibernate.
      * </p>
      *
      * @param adsId идентификатор объявления
@@ -343,7 +344,7 @@ public class AdvertisingService {
      * @throws AdvertisingNotFoundException если объявление не найдено
      * @throws AdvertisingRetrievalException если произошла другая ошибка при проверке
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean isAnotherAuthor(Long adsId) {
         try {
             Advertising ad = advertisingRepository.findById(adsId)

@@ -174,7 +174,7 @@ public class CommentService {
      * @return true, если комментарий принадлежит другому автору; false — если автору текущего пользователя
      * @throws CommentNotFoundException если комментарий не найден или не принадлежит объявлению
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean isAnotherAuthor(Long commentId, Long advertisingId) {
         Comment comment = commentRepository.findByIdAndAdvertisingId(
                         commentId,
