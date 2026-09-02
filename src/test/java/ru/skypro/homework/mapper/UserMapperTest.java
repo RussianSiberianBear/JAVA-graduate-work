@@ -124,13 +124,13 @@ class UserMapperTest {
 
     @Test
     void toImageUrl_ShouldConvertFileIdToUrl() {
-        String result = userMapper.toImageUrl(AVATAR_FILE_ID);
+        String result = ImageMapperUtil.toImageUrl(AVATAR_FILE_ID);
         assertThat(result).isEqualTo(EXPECTED_IMAGE_URL);
     }
 
     @Test
     void toImageUrl_ShouldReturnNullForNullFileId() {
-        String result = userMapper.toImageUrl(null);
+        String result = ImageMapperUtil.toImageUrl(null);
         assertThat(result).isNull();
     }
 }

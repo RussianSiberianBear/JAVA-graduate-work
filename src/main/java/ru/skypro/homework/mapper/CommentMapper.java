@@ -18,7 +18,7 @@ import java.time.ZoneId;
  * - формирование URL для аватара автора по идентификатору файла.
  * </p>
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ImageMapperUtil.class)
 public interface CommentMapper {
 
     /**
@@ -49,21 +49,6 @@ public interface CommentMapper {
             qualifiedByName = "toTimestamp"
     )
     CommentOneResponseDto toResponse(Comment comment);
-
-    /**
-     * Вспомогательный метод для формирования URL изображения по идентификатору файла.
-     * <p>
-     * Если fileId равен null, возвращает null. Иначе формирует путь вида "/images/{fileId}".
-     * Используется в маппере через аннотацию @Named("toImageUrl") и qualifiedByName.
-     * </p>
-     *
-     * @param fileId идентификатор файла изображения
-     * @return сформированный URL изображения или null, если идентификатор отсутствует
-     */
-    @Named("toImageUrl")
-    default String toImageUrl(String fileId) {
-        return fileId == null ? null : "/images/" + fileId;
-    }
 
     /**
      * Вспомогательный метод для преобразования LocalDateTime в Unix‑timestamp в миллисекундах.

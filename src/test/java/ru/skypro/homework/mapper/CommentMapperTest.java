@@ -128,13 +128,13 @@ class CommentMapperTest {
 
     @Test
     void toImageUrl_ShouldConvertFileIdToUrl() {
-        String result = commentMapper.toImageUrl(AVATAR_FILE_ID);
+        String result = ImageMapperUtil.toImageUrl(AVATAR_FILE_ID);
         assertThat(result).isEqualTo(EXPECTED_AVATAR_URL);
     }
 
     @Test
     void toImageUrl_ShouldReturnNullForNullFileId() {
-        String result = commentMapper.toImageUrl(null);
+        String result = ImageMapperUtil.toImageUrl(null);
         assertThat(result).isNull();
     }
 

@@ -117,13 +117,13 @@ class AdvertisingMapperTest {
 
     @Test
     void toImageUrl_ShouldConvertFileIdToUrl() {
-        String result = advertisingMapper.toImageUrl(IMAGE_FILE_ID);
+        String result = ImageMapperUtil.toImageUrl(IMAGE_FILE_ID);
         assertThat(result).isEqualTo("/images/" + IMAGE_FILE_ID);
     }
 
     @Test
     void toImageUrl_ShouldReturnNullForNullFileId() {
-        String result = advertisingMapper.toImageUrl(null);
+        String result = ImageMapperUtil.toImageUrl(null);
         assertThat(result).isNull();
     }
 }

@@ -3,7 +3,6 @@ package ru.skypro.homework.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
 import ru.skypro.homework.dto.AdvertisingOneResponseDto;
 import ru.skypro.homework.dto.AdvertisingWithAuthorDto;
 import ru.skypro.homework.dto.CreateOrUpdateAd;
@@ -18,14 +17,14 @@ import ru.skypro.homework.model.Advertising;
  * - создание и обновление сущности {@link Advertising} на основе DTO {@link CreateOrUpdateAd}.
  * </p>
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ImageMapperUtil.class)
 public interface AdvertisingMapper {
 
     /**
      * Преобразует сущность объявления в DTO для ответа с базовой информацией.
      * <p>
      * Выполняет следующие маппинги:
-     * - image: формирует URL изображения через метод toImageUrl;
+     * - image: формирует URL изображения с помощью qualifiedByName = "toImageUrl";
      * - author: маппит ID автора;
      * - pk: маппит ID объявления в поле pk.
      * </p>
@@ -35,7 +34,8 @@ public interface AdvertisingMapper {
      */
     @Mapping(
             target = "image",
-            expression = "java(toImageUrl(ads.getImageFileId()))"
+            source = "imageFileId",
+            qualifiedByName = "toImageUrl"
     )
     @Mapping(target = "author", source = "author.id")
     @Mapping(target = "pk", source = "id")
@@ -83,21 +83,4 @@ public interface AdvertisingMapper {
      * @param advertising       существующая сущность, которую нужно обновить
      */
     void updateEntity(CreateOrUpdateAd createOrUpdateAd, @MappingTarget Advertising advertising);
-
-    /**
-     * Вспомогательный метод для формирования URL изображения по идентификатору файла.
-     * <p>
-     * Если fileId равен null, возвращает null. Иначе формирует путь вида "/images/{fileId}".
-     * Используется в маппере через аннотацию @Named("toImageUrl") и qualifiedByName.
-     * </p>
-     *
-     * @param fileId идентификатор файла изображения
-     * @return сформированный URL изображения или null, если идентификатор отсутствует
-     */
-    @Named("toImageUrl")
-    default String toImageUrl(String fileId) {
-        return fileId == null
-                ? null
-                : "/images/" + fileId;
-    }
 }

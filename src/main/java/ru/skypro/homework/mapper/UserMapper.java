@@ -2,7 +2,6 @@ package ru.skypro.homework.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 import ru.skypro.homework.dto.Register;
 import ru.skypro.homework.dto.UserInfoResponseDto;
 import ru.skypro.homework.model.User;
@@ -16,7 +15,7 @@ import ru.skypro.homework.model.User;
  * - формирование URL аватара на основе avatarFileId.
  * </p>
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ImageMapperUtil.class)
 public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseDto> {
 
     /**
@@ -56,21 +55,4 @@ public interface UserMapper extends BaseMapper<User, Register, UserInfoResponseD
             qualifiedByName = "toImageUrl"
     )
     UserInfoResponseDto toResponse(User user);
-
-    /**
-     * Вспомогательный метод для формирования URL изображения по идентификатору файла.
-     * <p>
-     * Если fileId равен null, возвращает null. Иначе формирует путь вида "/images/{fileId}".
-     * Используется в маппере через аннотацию @Named("toImageUrl") и qualifiedByName.
-     * </p>
-     *
-     * @param fileId идентификатор файла изображения
-     * @return сформированный URL изображения или null, если идентификатор отсутствует
-     */
-    @Named("toImageUrl")
-    default String toImageUrl(String fileId) {
-        return fileId == null
-                ? null
-                : "/images/" + fileId;
-    }
 }
