@@ -3,7 +3,9 @@ package ru.skypro.homework.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import ru.skypro.homework.constants.ValidationConstants;
 
 /**
  * DTO для запроса на аутентификацию пользователя (вход в систему).
@@ -40,8 +42,16 @@ public record Login(
                 required = true,
                 minLength = 8,
                 maxLength = 16)
-        @NotBlank(message = "Пароль не может быть пустым")
-        @Size(min = 8, max = 16, message = "Пароль должен содержать от 8 до 16 символов")
+        @NotBlank(message = "Пароль не может быть пустым!")
+        @Size(min = ValidationConstants.PASSWORD_MIN,
+                max = ValidationConstants.PASSWORD_MAX,
+                message = "Пароль должен содержать от " +
+                        ValidationConstants.PASSWORD_MIN + " до " +
+                        ValidationConstants.PASSWORD_MAX + " символов")
+        @Pattern(
+                regexp = ValidationConstants.PASSWORD_REGEX,
+                message = ValidationConstants.PASSWORD_MESSAGE
+        )
         String password
 ) {
 }
