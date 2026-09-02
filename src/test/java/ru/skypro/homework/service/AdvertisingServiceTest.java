@@ -613,12 +613,12 @@ class AdvertisingServiceTest {
 
         doNothing()
                 .when(advertisingRepository)
-                .deleteById(adId);
+                .delete(ad);
 
         advertisingService.deleteAdById(adId);
 
         verify(advertisingRepository, times(1))
-                .deleteById(adId);
+                .delete(ad);
     }
 
 

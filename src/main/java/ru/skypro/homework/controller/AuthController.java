@@ -53,7 +53,6 @@ public class AuthController {
     public ResponseEntity<String> login(@Valid @RequestBody Login login) {
         log.debug("Attempting login for user: {}", login.username());
         if (authService.login(login.username(), login.password())) {
-            log.info("Login successful for user: {}", login.username());
             return ResponseEntity.ok().build();
         } else {
             log.warn("Login failed for user: {}", login.username());
@@ -83,8 +82,7 @@ public class AuthController {
     public ResponseEntity<String> register(@Valid @RequestBody Register register) {
         log.debug("Attempting registration for user: {}", register.username());
         if (authService.register(register)) {
-            log.info("User registered successfully: {}", register.username());
-            return ResponseEntity.status(HttpStatus.CREATED).build();
+             return ResponseEntity.status(HttpStatus.CREATED).build();
         } else {
             log.warn("Registration failed for user: {}", register.username());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

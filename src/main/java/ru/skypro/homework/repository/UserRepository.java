@@ -31,6 +31,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     /**
+     * Проверяет существование пользователя по адресу электронной почты.
+     *
+     * @param email адрес электронной почты для проверки
+     * @return true, если пользователь с таким email существует; false — в противном случае
+     */
+    boolean existsByEmail(String email);
+
+    /**
      * Находит пользователя по номеру телефона.
      * <p>
      * Телефон в модели помечен как обязательный, но не уникальный — в теории
