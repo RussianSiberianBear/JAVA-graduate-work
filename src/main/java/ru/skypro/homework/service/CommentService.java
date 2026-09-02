@@ -93,6 +93,7 @@ public class CommentService {
      * @return DTO созданного комментария
      * @throws AdvertisingNotFoundException если объявление не найдено
      */
+    @Transactional
     public CommentOneResponseDto addCommentToAdvertisingId(User user, Long id, CommentRequestDto dto) {
         Advertising ad = advertisingRepository.findById(id)
                 .orElseThrow(() -> new AdvertisingNotFoundException(ExceptionMessages.formatAdNotFound(id)));
@@ -119,6 +120,7 @@ public class CommentService {
      * @param advertisingId идентификатор объявления
      * @throws CommentNotFoundException если комментарий не найден или не принадлежит объявлению
      */
+    @Transactional
     public void deleteCommentByIdAndAdvertisingById(Long commentId, Long advertisingId) {
         Long id = commentRepository.findByIdAndAdvertisingId(commentId, advertisingId)
                 .orElseThrow(() -> new CommentNotFoundException(
