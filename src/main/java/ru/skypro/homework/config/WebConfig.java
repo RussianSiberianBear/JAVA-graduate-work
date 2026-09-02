@@ -26,6 +26,6 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins("http://localhost:3000") // Разрешённые источники (фронтенд)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS") // Разрешённые HTTP‑методы
                 .allowedHeaders("*") // Разрешённые заголовки
-                .allowCredentials(true); // Разрешить передачу учётных данных (cookies и т. п.)
+                .allowCredentials(true); // Разрешить передачу учётных данных (cookies и т.п.)
     }
 }
